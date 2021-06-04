@@ -20,57 +20,69 @@ public class MyAudioFile {
     public var needsFileScheduled = true
     public var seekFrame: AVAudioFramePosition = 0
     
+    public let micMixer: AVAudioMixerNode = AVAudioMixerNode()
+    public var tempTimer: Timer = Timer()
+    public var elapsedTime: Int = 0
+    
     init(){
         player.volume = 1.0
     }
     
-    // MARK: Setup
+    // MARK: setupAudio
     
-    public func setupAudio(audioFilePath: NSURL) {
+    public func setupAudio(audioFilePath: NSURL, eqSettings: EqSettings) {
       do {
         let file = try AVAudioFile(forReading: audioFilePath as URL)
         let format = file.processingFormat
+        let newEqSettings = eqSettings
         
         audioLengthSamples = file.length
         audioSampleRate = format.sampleRate
         audioLengthSeconds = Double(audioLengthSamples) / audioSampleRate
         audioFile = file
         
-        setupEQ(with: format)
+        setupEQ(with: format, eqSettings: newEqSettings)
       } catch {
         print("Error reading the audio file: \(error.localizedDescription)")
       }
     }
     
-    public func setupEQ(with format: AVAudioFormat) {
-        let lowEndEQ = eq.bands[0]
-        lowEndEQ.filterType = .lowShelf
-        lowEndEQ.frequency = 150.0
-        lowEndEQ.gain = 0.0
-        lowEndEQ.bypass = false
+    // MARK: setupEQ
+    public func setupEQ(with format: AVAudioFormat, eqSettings: EqSettings) {
+        let bassEQ = eq.bands[0]
+        bassEQ.filterType = .lowShelf
+        bassEQ.frequency = eqSettings.bassFrequency!
+        bassEQ.gain = eqSettings.bassGain!
+        bassEQ.bypass = false
         
         let midEQ = eq.bands[1]
         midEQ.filterType = .parametric
-        midEQ.frequency = 1200.0
-        midEQ.bandwidth = 0.35
-        midEQ.gain = 0.0
+        midEQ.frequency = eqSettings.midFrequency!
+        midEQ.bandwidth = 1
+        midEQ.gain = eqSettings.midGain!
         midEQ.bypass = false
         
-        let highEndEQ = eq.bands[2]
-        highEndEQ.filterType = .highShelf
-        highEndEQ.frequency = 10000.0
-        highEndEQ.gain = 0.0
-        highEndEQ.bypass = false
+        let trebleEQ = eq.bands[2]
+        trebleEQ.filterType = .highShelf
+        trebleEQ.frequency = eqSettings.trebleFrequency!
+        trebleEQ.gain = eqSettings.trebleGain!
+        trebleEQ.bypass = false
         
         configureEngine(with: format)
     }
     
+    // MARK: configureEngine
     public func configureEngine(with format: AVAudioFormat) {
+//        let micInput = engine.inputNode
+//        let micFormat = micInput.inputFormat(forBus: 0)
         engine.attach(player)
         engine.attach(eq)
+        engine.attach(micMixer)
       
         engine.connect(player, to: eq, format: format)
         engine.connect(eq, to: engine.mainMixerNode, format: format)
+//        engine.connect(micInput, to: micMixer, format: micFormat)
+//        engine.connect(micMixer, to: engine.mainMixerNode, format: format)
         engine.prepare()
       
       do {
@@ -83,6 +95,7 @@ public class MyAudioFile {
       }
     }
     
+    // MARK: scheduleAudioFile
     public func scheduleAudioFile() {
       guard let file = audioFile, needsFileScheduled else {
         return
@@ -97,8 +110,43 @@ public class MyAudioFile {
         // playOrPause()
     }
     
+    @objc func tempUpdateNumber(timer: Timer) {
+        let timerInfo: TimerInfo = timer.userInfo as! TimerInfo
+        var dataDictionary: [String: Int] = [:]
+        elapsedTime = elapsedTime + 1
+        dataDictionary["value"] = elapsedTime
+        timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
+    }
+    
+    public func setElapsedTimeEvent(eventName: String, mixer: Mixer) {
+        var timerInfo: TimerInfo = TimerInfo()
+        timerInfo.eventName = eventName
+        timerInfo.mixer = mixer
+        
+        DispatchQueue.main.async {
+            self.tempTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.elapsedTimeEvent), userInfo: timerInfo, repeats: true)
+        }
+    }
+    
+    @objc func elapsedTimeEvent(timer: Timer) {
+        let timerInfo: TimerInfo = timer.userInfo as! TimerInfo
+        var dataDictionary: [String: Double] = [:]
+        if let nodeTime: AVAudioTime = player.lastRenderTime, let playerTime: AVAudioTime = player.playerTime(forNodeTime: nodeTime) {
+               dataDictionary["value"] = Double(Double(playerTime.sampleTime) / playerTime.sampleRate)
+            }
+        else {
+            dataDictionary["value"] = 0
+        }
+//        dataDictionary["value"] = seconds
+        timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
+    }
+    
+
     // MARK: Player Controls
     
+    
+    
+    // MARK: playOrPause
     public func playOrPause() -> String {
         if (player.isPlaying) {
             player.pause()
@@ -111,7 +159,7 @@ public class MyAudioFile {
             return "play"
         }
     }
-    
+    // MARK: stop
     public func stop() -> String {
         player.stop()
         return "stop"
@@ -119,37 +167,74 @@ public class MyAudioFile {
         // TODO: find out why playing after stop is quieter than initial play
     }
     
+    // MARK: isPlaying
     public func isPlaying() -> Bool {
         return player.isPlaying
     }
     
+    // MARK: adjustVolume
     public func adjustVolume(volume: Float) {
         player.volume = volume
     }
     
+    // MARK: getCurrentVolume
     public func getCurrentVolume() -> Float {
         return player.volume
     }
     
+    // MARK: adjustEQ
     public func adjustEQ(type: String, gain: Float, freq: Float) {
         switch type {
         case "bass":
-            let lowEndEQ = eq.bands[0]
-            lowEndEQ.gain = gain
-            lowEndEQ.frequency = freq
+            let bassEQ = eq.bands[0]
+            bassEQ.gain = gain
+            bassEQ.frequency = freq
             
         case "mid":
             let midEQ = eq.bands[1]
             midEQ.gain = gain
             midEQ.frequency = freq
             
-        case "high":
-            let highEndEQ = eq.bands[2]
-            highEndEQ.gain = gain
-            highEndEQ.frequency = freq
+        case "treble":
+            let trebleEQ = eq.bands[2]
+            trebleEQ.gain = gain
+            trebleEQ.frequency = freq
             
         default:
             print("adjustEQ: invalid eq type")
         }
     }
+    
+    // MARK: getCurrentEQ
+    public func getCurrentEQ() -> [String: Float] {
+        let bassEQ = eq.bands[0]
+        let midEQ = eq.bands[1]
+        let trebleEQ = eq.bands[2]
+        
+        return ["bassGain": bassEQ.gain,
+                "bassFreq": bassEQ.frequency,
+                "midGain": midEQ.gain,
+                "midFreq": midEQ.frequency,
+                "trebleGain": trebleEQ.gain,
+                "trebleFreq": trebleEQ.frequency]
+    }
+}
+extension AVAudioFile{
+
+    var totalDurationSeconds: TimeInterval{
+        let sampleRateSong = Double(processingFormat.sampleRate)
+        let lengthSongSeconds = Double(length) / sampleRateSong
+        return lengthSongSeconds
+    }
+
+}
+extension AVAudioPlayerNode{
+
+    var elapsedTimeSeconds: TimeInterval{
+        if let nodeTime = lastRenderTime,let playerTime = playerTime(forNodeTime: nodeTime) {
+            return Double(playerTime.sampleTime) / playerTime.sampleRate
+        }
+        return 0
+    }
+    
 }

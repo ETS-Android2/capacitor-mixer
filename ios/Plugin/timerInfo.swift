@@ -7,3 +7,8 @@
 //
 
 import Foundation
+
+public class TimerInfo {
+    public var mixer: Mixer?
+    public var eventName: String?
+}
