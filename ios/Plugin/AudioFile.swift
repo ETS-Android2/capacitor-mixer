@@ -21,8 +21,10 @@ public class MyAudioFile {
     public var seekFrame: AVAudioFramePosition = 0
     
     public let micMixer: AVAudioMixerNode = AVAudioMixerNode()
+    
     public var tempTimer: Timer = Timer()
-    public var elapsedTime: Int = 0
+    public var elapsedTime: TimeInterval = 0
+    public var elapsedTimeEventName: String = ""
     
     init(){
         player.volume = 1.0
@@ -100,7 +102,6 @@ public class MyAudioFile {
       guard let file = audioFile, needsFileScheduled else {
         return
       }
-      
         needsFileScheduled = false
         seekFrame = 0
         player.volume = 1
@@ -112,19 +113,24 @@ public class MyAudioFile {
     
     @objc func tempUpdateNumber(timer: Timer) {
         let timerInfo: TimerInfo = timer.userInfo as! TimerInfo
-        var dataDictionary: [String: Int] = [:]
-        elapsedTime = elapsedTime + 1
-        dataDictionary["value"] = elapsedTime
-        timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
+        var dataDictionary: [String: TimeInterval] = [:]
+        
+        if(player.currentElapsedTime > elapsedTime) {
+            elapsedTime = player.currentElapsedTime
+            dataDictionary["seconds"] = elapsedTime
+            timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
+        }
     }
     
     public func setElapsedTimeEvent(eventName: String, mixer: Mixer) {
-        var timerInfo: TimerInfo = TimerInfo()
+        let timerInfo: TimerInfo = TimerInfo()
         timerInfo.eventName = eventName
         timerInfo.mixer = mixer
         
+        elapsedTimeEventName = eventName
+        
         DispatchQueue.main.async {
-            self.tempTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.elapsedTimeEvent), userInfo: timerInfo, repeats: true)
+            self.tempTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.tempUpdateNumber), userInfo: timerInfo, repeats: true)
         }
     }
     
@@ -161,10 +167,10 @@ public class MyAudioFile {
     }
     // MARK: stop
     public func stop() -> String {
+        elapsedTime = 0
         player.stop()
         return "stop"
 //        needsFileScheduled = true
-        // TODO: find out why playing after stop is quieter than initial play
     }
     
     // MARK: isPlaying
@@ -184,6 +190,9 @@ public class MyAudioFile {
     
     // MARK: adjustEQ
     public func adjustEQ(type: String, gain: Float, freq: Float) {
+        if(eq.bands.count < 1) {
+            return
+        }
         switch type {
         case "bass":
             let bassEQ = eq.bands[0]
@@ -207,6 +216,9 @@ public class MyAudioFile {
     
     // MARK: getCurrentEQ
     public func getCurrentEQ() -> [String: Float] {
+        if(eq.bands.count < 1) {
+            return [:]
+        }
         let bassEQ = eq.bands[0]
         let midEQ = eq.bands[1]
         let trebleEQ = eq.bands[2]
@@ -218,20 +230,65 @@ public class MyAudioFile {
                 "trebleGain": trebleEQ.gain,
                 "trebleFreq": trebleEQ.frequency]
     }
+    
+    public func getElapsedTime() -> [String: Int] {
+        if(player.elapsedTimeSeconds > elapsedTime) {
+            elapsedTime = player.elapsedTimeSeconds
+        }
+        return elapsedTime.stringFromTimeInterval()
+    }
 }
-extension AVAudioFile{
 
-    var totalDurationSeconds: TimeInterval{
+extension TimeInterval{
+
+    func stringFromTimeInterval() -> [String : Int] {
+
+        let time = NSInteger(self)
+
+        let miliSeconds = Int((self.truncatingRemainder(dividingBy: 1)) * 1000)
+        let seconds = time % 60
+        let minutes = (time / 60) % 60
+        let hours = (time / 3600)
+
+        return [
+            "miliSeconds": miliSeconds,
+            "seconds": seconds,
+            "minutes": minutes,
+            "hours": hours
+        ]
+
+    }
+}
+
+extension AVAudioFile {
+
+    var totalDurationSeconds: TimeInterval {
         let sampleRateSong = Double(processingFormat.sampleRate)
         let lengthSongSeconds = Double(length) / sampleRateSong
         return lengthSongSeconds
     }
-
 }
-extension AVAudioPlayerNode{
 
-    var elapsedTimeSeconds: TimeInterval{
-        if let nodeTime = lastRenderTime,let playerTime = playerTime(forNodeTime: nodeTime) {
+extension AVAudioPlayerNode {
+    
+    private struct currentelapsed {
+        static var time: TimeInterval = 0
+    }
+    
+    var currentElapsedTime: TimeInterval {
+        get {
+            guard let time = objc_getAssociatedObject(self, &currentelapsed.time) as? TimeInterval else {
+                return 0
+            }
+            return time
+        }
+        set {
+            objc_setAssociatedObject(self, &currentelapsed.time, newValue, .OBJC_ASSOCIATION_RETAIN)
+        }
+    }
+
+    var elapsedTimeSeconds: TimeInterval {
+        if let nodeTime = lastRenderTime, let playerTime = playerTime(forNodeTime: nodeTime) {
             return Double(playerTime.sampleTime) / playerTime.sampleRate
         }
         return 0

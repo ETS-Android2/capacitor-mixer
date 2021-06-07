@@ -69,6 +69,11 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     return
   }
 
+  async getElapsedTime(options: BaseMixerRequest): Promise<{miliSeconds: number, seconds: number, minutes: number, hours: number}> {
+    console.log('not implemented', options);
+    return {miliSeconds: 0, seconds: 0, minutes: 0, hours: 0}
+  }
+
 }
 
 const Mixer = new MixerWeb();

@@ -1,3 +1,5 @@
+import { Plugin } from "@capacitor/core/dist/esm/definitions";
+
 declare module '@capacitor/core' {
   interface PluginRegistry {
     Mixer: MixerPlugin;
@@ -107,7 +109,7 @@ export enum EqType {
   TREBLE = "treble"
 }
 
-export interface MixerPlugin {
+export interface MixerPlugin extends Plugin {
   echo(options: { value: string }): Promise<{ value: string }>;
   /**
    * Toggles playback and pause on an initialized audio file
@@ -130,5 +132,7 @@ export interface MixerPlugin {
   adjustEQ(options: AdjustEqRequest): Promise<void>;
 
   setElapsedTimeEvent(options: SetEventRequest): Promise<void>;
+
+  getElapsedTime(options: BaseMixerRequest): Promise<{miliSeconds: number, seconds: number, minutes: number, hours: number}>;
 }
 

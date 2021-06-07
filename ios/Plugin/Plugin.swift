@@ -185,6 +185,18 @@ public class Mixer: CAPPlugin {
         call.success()
     }
     
+    @objc func getElapsedTime(_ call: CAPPluginCall) {
+        let audioId = call.getString("audioId") ?? ""
+        if (audioId.isEmpty) {
+            call.error("from setElapsedTimeEvent - audioId not found")
+        }
+        if (audioFileList[audioId] == nil) {
+            call.error("from setElapsedTimeEvent - File not yet added to queue")
+        }
+        let result = (audioFileList[audioId]?.getElapsedTime())!
+        call.success(result)
+    }
+    
     
     // Play local file from a URL
     // Deprecated, dessicated, decapitated
