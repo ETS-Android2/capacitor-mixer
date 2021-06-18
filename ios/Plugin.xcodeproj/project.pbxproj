@@ -16,9 +16,11 @@
 		50ADFFA82020EE4F00D50D53 /* Plugin.m in Sources */ = {isa = PBXBuildFile; fileRef = 50ADFFA72020EE4F00D50D53 /* Plugin.m */; };
 		50E1A94820377CB70090CE1A /* Plugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E1A94720377CB70090CE1A /* Plugin.swift */; };
 		5990D0AE2666D5A2006DD620 /* WhiteNoise.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5990D0AD2666D5A2006DD620 /* WhiteNoise.mp3 */; };
+		59A48D96267A94FD0098AF17 /* ChannelSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A48D95267A94FD0098AF17 /* ChannelSettings.swift */; };
 		59BA273A266AC7AE00C10C99 /* TimerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BA2739266AC7AE00C10C99 /* TimerInfo.swift */; };
 		59BDB97F2656F4C9004FE715 /* KnewSomething.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 59BDB97E2656F4C9004FE715 /* KnewSomething.mp3 */; };
 		59BDB98426570A61004FE715 /* AudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BDB98326570A61004FE715 /* AudioFile.swift */; };
+		59DB6C2F2673FD5300F7BC0D /* MicInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DB6C2E2673FD5300F7BC0D /* MicInput.swift */; };
 		59F10A402669634400B44BF5 /* EqSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F10A3F2669634400B44BF5 /* EqSettings.swift */; };
 /* End PBXBuildFile section */
 
@@ -44,9 +46,11 @@
 		50ADFFA72020EE4F00D50D53 /* Plugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Plugin.m; sourceTree = "<group>"; };
 		50E1A94720377CB70090CE1A /* Plugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Plugin.swift; sourceTree = "<group>"; };
 		5990D0AD2666D5A2006DD620 /* WhiteNoise.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = WhiteNoise.mp3; sourceTree = "<group>"; };
+		59A48D95267A94FD0098AF17 /* ChannelSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelSettings.swift; sourceTree = "<group>"; };
 		59BA2739266AC7AE00C10C99 /* TimerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerInfo.swift; sourceTree = "<group>"; };
 		59BDB97E2656F4C9004FE715 /* KnewSomething.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = KnewSomething.mp3; sourceTree = "<group>"; };
 		59BDB98326570A61004FE715 /* AudioFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFile.swift; sourceTree = "<group>"; };
+		59DB6C2E2673FD5300F7BC0D /* MicInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicInput.swift; sourceTree = "<group>"; };
 		59F10A3F2669634400B44BF5 /* EqSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqSettings.swift; sourceTree = "<group>"; };
 		5E23F77F099397094342571A /* Pods-Plugin.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Plugin.debug.xcconfig"; path = "Pods/Target Support Files/Pods-Plugin/Pods-Plugin.debug.xcconfig"; sourceTree = "<group>"; };
 		91781294A431A2A7CC6EB714 /* Pods-Plugin.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Plugin.release.xcconfig"; path = "Pods/Target Support Files/Pods-Plugin/Pods-Plugin.release.xcconfig"; sourceTree = "<group>"; };
@@ -108,6 +112,8 @@
 				50ADFF8C201F53D600D50D53 /* Info.plist */,
 				59F10A3F2669634400B44BF5 /* EqSettings.swift */,
 				59BA2739266AC7AE00C10C99 /* TimerInfo.swift */,
+				59DB6C2E2673FD5300F7BC0D /* MicInput.swift */,
+				59A48D95267A94FD0098AF17 /* ChannelSettings.swift */,
 			);
 			path = Plugin;
 			sourceTree = "<group>";
@@ -332,6 +338,8 @@
 				50E1A94820377CB70090CE1A /* Plugin.swift in Sources */,
 				59BA273A266AC7AE00C10C99 /* TimerInfo.swift in Sources */,
 				59F10A402669634400B44BF5 /* EqSettings.swift in Sources */,
+				59DB6C2F2673FD5300F7BC0D /* MicInput.swift in Sources */,
+				59A48D96267A94FD0098AF17 /* ChannelSettings.swift in Sources */,
 				50ADFFA82020EE4F00D50D53 /* Plugin.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

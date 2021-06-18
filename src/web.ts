@@ -1,5 +1,21 @@
 import { WebPlugin } from '@capacitor/core';
-import { AdjustEqRequest, AdjustVolumeRequest, BaseMixerRequest, InitAudioFileRequest, MixerPlugin, SetEventRequest } from './definitions';
+import {
+  AdjustEqRequest,
+  AdjustVolumeRequest,
+  BaseMixerRequest,
+  BaseResponse,
+  ChannelPropertyRequest,
+  EqResponse,
+  InitChannelRequest,
+  InitResponse,
+  MixerPlugin,
+  MixerTimeResponse,
+  PlaybackStateBoolean,
+  PlaybackStateResponse,
+  ResponseStatus,
+  SetEventRequest,
+  VolumeResponse
+} from './definitions';
 
 export class MixerWeb extends WebPlugin implements MixerPlugin {
   constructor() {
@@ -14,64 +30,72 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     return options;
   }
 
-  async play(options: BaseMixerRequest): Promise<{ state: string }> {
+  async play(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('ECHO', options);
-    return { state: options.audioId };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };
   }
 
-  async stop(options: BaseMixerRequest): Promise<{ state: string }> {
+  async stop(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('boi', options);
-    return { state: options.audioId }
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };
   }
 
-  async isPlaying(options: BaseMixerRequest): Promise<{ value: boolean }> {
+  async isPlaying(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateBoolean>> {
     console.log('areyouplaying?', options);
-    return { value: true }
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: true } };
   }
 
-  async getCurrentVolume(options: BaseMixerRequest): Promise<{ volume: number }> {
+  async getCurrentVolume(options: ChannelPropertyRequest): Promise<BaseResponse<VolumeResponse>> {
     console.log('how loud is it?', options);
-    return { volume: -1 }
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { volume: -1 } };
   }
 
-  async getCurrentEQ(options: BaseMixerRequest): Promise<{
-    bassGain: number, bassFreq: number,
-    midGain: number, midFreq: number,
-    trebleGain: number, trebleFreq: number
-  }> {
+  async getCurrentEq(options: ChannelPropertyRequest): Promise<BaseResponse<EqResponse>> {
     console.log('tell us about eq', options);
     return {
-      bassGain: -1, bassFreq: -1,
-      midGain: -1, midFreq: -1,
-      trebleGain: -1, trebleFreq: -1
-    }
+      status: ResponseStatus.ERROR, message: "not implemented", data: {
+        bassGain: -1, bassFreq: -1,
+        midGain: -1, midFreq: -1,
+        trebleGain: -1, trebleFreq: -1
+      }
+    };
   }
 
 
 
-  async initAudioFile(options: InitAudioFileRequest): Promise<{ value: string }> {
+  async initAudioFile(options: InitChannelRequest): Promise<BaseResponse<InitResponse>> {
     console.log('HEYBUBBY', options);
-    return { value: `${options.filePath} ${options.audioId}` }
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: `${options.filePath} ${options.audioId}` } };
   }
 
-  async adjustVolume(options: AdjustVolumeRequest): Promise<void> {
+  async adjustVolume(options: AdjustVolumeRequest): Promise<BaseResponse<null>> {
     console.log('adjusting volume', options);
-    return
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
-  async adjustEQ(options: AdjustEqRequest): Promise<void> {
+  async adjustEq(options: AdjustEqRequest): Promise<BaseResponse<null>> {
     console.log('adjusting eq', options);
-    return
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
-  async setElapsedTimeEvent(options: SetEventRequest): Promise<void> {
+  async setElapsedTimeEvent(options: SetEventRequest): Promise<BaseResponse<null>> {
     console.log('ur late lol', options);
-    return
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
-  async getElapsedTime(options: BaseMixerRequest): Promise<{miliSeconds: number, seconds: number, minutes: number, hours: number}> {
+  async getElapsedTime(options: BaseMixerRequest): Promise<BaseResponse<MixerTimeResponse>> {
     console.log('not implemented', options);
-    return {miliSeconds: 0, seconds: 0, minutes: 0, hours: 0}
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { milliSeconds: 0, seconds: 0, minutes: 0, hours: 0 } };
+  }
+
+  async getTotalTime(options: BaseMixerRequest): Promise<BaseResponse<MixerTimeResponse>> {
+    console.log('how long the song is', options);
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { milliSeconds: 0, seconds: 0, minutes: 0, hours: 0 } };
+  }
+
+  async initMicInput(request: InitChannelRequest): Promise<BaseResponse<InitResponse>> {
+    console.log('HEYBUBBY', request);
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: `${request.audioId}` } };
   }
 
 }

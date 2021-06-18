@@ -11,8 +11,10 @@ CAP_PLUGIN(Mixer, "Mixer",
            CAP_PLUGIN_METHOD(initAudioFile, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(adjustVolume, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getCurrentVolume, CAPPluginReturnPromise);
-           CAP_PLUGIN_METHOD(adjustEQ, CAPPluginReturnPromise);
-           CAP_PLUGIN_METHOD(getCurrentEQ, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(adjustEq, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(getCurrentEq, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(setElapsedTimeEvent, CAPPluginReturnCallback);
            CAP_PLUGIN_METHOD(getElapsedTime, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(getTotalTime, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(initMicInput, CAPPluginReturnPromise);
 )
