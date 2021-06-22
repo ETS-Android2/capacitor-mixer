@@ -21,14 +21,13 @@ public class MicInput {
     init(parent: Mixer){
 //        micMixer.volume = 1.0
         _parent = parent
-        let test = _parent.audioSession.availableInputs?.first(where: {(test) -> Bool in
-            return test.portType == AVAudioSession.Port.usbAudio
-        })
-        let betterTest = _parent.audioSession.availableInputs?.filter({(test) -> Bool in
-                                                                        return test.portType == AVAudioSession.Port.usbAudio})
-        print("HEY GUYS LOOK HERE!!!", betterTest)
-        let betterBetterTest = _parent.audioSession.availableInputs
-        print("betterTest aint shit: ", betterBetterTest)
+        print("Available inputs: ", _parent.audioSession.availableInputs)
+        print("Preferred input: ", _parent.audioSession.preferredInput)
+        print("Data sources: ", _parent.audioSession.inputDataSources)
+        print("Data source: ", _parent.audioSession.inputDataSource)
+        print("Current Route: ", _parent.audioSession.currentRoute)
+        var unitBusses = engine.inputNode.auAudioUnit.inputBusses
+        print("Unit Busses: ", unitBusses.count)
     }
     
     // MARK: setupAudio
@@ -65,8 +64,16 @@ public class MicInput {
     public func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         let micInput = engine.inputNode
         let micFormat = micInput.inputFormat(forBus: 0)
+        print("Input Node format settings: ", engine.inputNode.auAudioUnit.inputBusses[0].format.settings)
+        
+//        let theFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: AVAudioChannelCount(2), interleaved: true)
+        
+        
+        print("Mic input number: ", micInput.numberOfInputs)
+        print("Mic output number: ", micInput.numberOfOutputs)
+        
         micMixer.outputVolume = channelSettings.volume!
-        micInput.installTap(onBus: 0, bufferSize: 1024, format: micFormat, block: handleInputBuffer)
+//        micInput.installTap(onBus: 0, bufferSize: 1024, format: micFormat, block: handleInputBuffer)
         
         engine.attach(eq)
         engine.attach(micMixer)
@@ -80,11 +87,22 @@ public class MicInput {
         engine.connect(eq, to: micMixer, format: micFormat)
         engine.connect(micMixer, to: engine.mainMixerNode, format: micFormat)
         
+//        let channelMap: [Int32] = [0, 0]
+//        let propSize: UInt32 = UInt32(channelMap.count)
+//        let code: OSStatus = AudioUnitSetProperty((engine.inputNode.audioUnit),
+//                                                      kAudioOutputUnitProperty_ChannelMap,
+//                                                      kAudioUnitScope_Global,
+//                                                      1,
+//                                                      channelMap,
+//                                                      propSize);
 
         engine.prepare()
       
       do {
         try engine.start()
+        print("Engine description: ", engine.description)
+        print("Channel Capabilities: ", micInput.auAudioUnit.channelCapabilities)
+        print("Channel Map: ", micInput.auAudioUnit.channelMap)
       } catch {
         print("Error starting the player: \(error.localizedDescription)")
       }
@@ -114,7 +132,7 @@ public class MicInput {
 //          let meterLevel = self.scaledPower(power: avgPower)
         let response = avgPower < -80 ? -80 : avgPower
 
-        _parent.notifyListeners(listenerName, data: ["meterLevel": response])
+//        _parent.notifyListeners(listenerName, data: ["meterLevel": response])
     }
     
     // TODO: remove this if not needed and uncomment tap for volume metering

@@ -18,11 +18,20 @@ public class Mixer: CAPPlugin {
         super.load()
         
         do {
-//            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.mixWithOthers, .defaultToSpeaker])
-//            try audioSession.setActive(true)
+            try audioSession.setCategory(.multiRoute, mode: .gameChat, options: [.defaultToSpeaker])
+            try audioSession.setActive(true)
         }
         catch {
             print("Problem initializing audio session")
+        }
+        if let desc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
+            return desc.portType == .usbAudio
+        }) {
+            do {
+                try audioSession.setPreferredInput(desc)
+            } catch let error {
+                print(error)
+            }
         }
     }
     
