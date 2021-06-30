@@ -20,21 +20,22 @@ public class MicInput {
     
     public var ioPlayer: AVAudioPlayerNode = AVAudioPlayerNode();
     public var ioBuffer: [AVAudioPCMBuffer] = [];
+    public var micInputQueue: DispatchQueue = DispatchQueue(label: "mixerPlugin.micInput.queue");
     
-    public var inputCount: Int = 0;
+    public var inputChannelCount: AVAudioChannelCount = 0;
     
 
     init(parent: Mixer){
 //        micMixer.volume = 1.0
         _parent = parent
-        print("Available inputs: ", _parent.audioSession.availableInputs)
-        print("Preferred input: ", _parent.audioSession.preferredInput)
-        print("Data sources: ", _parent.audioSession.inputDataSources)
-        print("Data source: ", _parent.audioSession.inputDataSource)
-        print("Current Route: ", _parent.audioSession.currentRoute)
+//        print("Available inputs: ", _parent.audioSession.availableInputs)
+//        print("Preferred input: ", _parent.audioSession.preferredInput)
+//        print("Data sources: ", _parent.audioSession.inputDataSources)
+//        print("Data source: ", _parent.audioSession.inputDataSource)
+//        print("Current Route: ", _parent.audioSession.currentRoute)
         var unitBusses = engine.inputNode.auAudioUnit.inputBusses
-        print("Unit Busses: ", unitBusses.count)
-        print("Channel Map", engine.inputNode.auAudioUnit.channelMap)
+//        print("Unit Busses: ", unitBusses.count)
+//        print("Channel Map", engine.inputNode.auAudioUnit.channelMap)
     }
     
     // MARK: setupAudio
@@ -71,31 +72,12 @@ public class MicInput {
     public func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         
         let micInput = engine.inputNode
-        let tempMicFormat = micInput.outputFormat(forBus: 0)
-        let fromFormat = tempMicFormat;
         
+        let micFormat = micInput.outputFormat(forBus: 0)
+        inputChannelCount = micFormat.channelCount
         let toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: false)
         
-        var formatPointer: AudioStreamBasicDescription = tempMicFormat.streamDescription.pointee
-//        formatPointer.mChannelsPerFrame = 6
-        let micFormat = AVAudioFormat(streamDescription: &formatPointer)
-        
-        micInput.installTap(onBus: 0, bufferSize: 1024, format: tempMicFormat, block: handleInputBuffer)
-        
-        
-        let mainInputLayout = engine.mainMixerNode.inputFormat(forBus: 0).channelLayout?.layout.pointee
-        let mainOutputLayout = engine.mainMixerNode.outputFormat(forBus: 0).channelLayout?.layout.pointee
 
-        print("Mic input format: ", micInput.inputFormat(forBus: 0))
-        print("Mic output format: ", micInput.outputFormat(forBus: 0))
-        print("Mic output format channel count: ", micInput.outputFormat(forBus: 0).channelCount)
-        print("Mic output format channel layout: ", micInput.outputFormat(forBus: 0))
-        print("Mic input number: ", micInput.numberOfInputs)
-        print("Mic output number: ", micInput.numberOfOutputs)
-        print("Mic input busses count", micInput.auAudioUnit.inputBusses.count)
-        print("mainInputLayout", mainInputLayout)
-        print("mainOutputLayout", mainOutputLayout)
-        
         
         micMixer.outputVolume = channelSettings.volume!
         
@@ -103,32 +85,23 @@ public class MicInput {
         engine.attach(ioPlayer)
         engine.attach(micMixer)
         
-        
         if (channelSettings.channelListenerName != "") {
             listenerName = channelSettings.channelListenerName!
             micMixer.removeTap(onBus: 0)
             micMixer.installTap(onBus: 0, bufferSize: 1024, format: micMixer.outputFormat(forBus: 0), block: handleMetering)
         }
         
-        print("Before - Mic Input Out format: ", micInput.outputFormat(forBus: 0))
-        print("Before - Mic Mixer In format:", micMixer.inputFormat(forBus: 0))
-            
-//        engine.connect(micInput, to: micMixer, format: tempMicFormat)
-//        engine.connect(eq, to: micMixer, format: micFormat)
-        engine.connect(ioPlayer, to: micMixer, format: toFormat)
+        engine.connect(ioPlayer, to: eq, format: toFormat)
+        engine.connect(eq, to: micMixer, format: toFormat)
         engine.connect(micMixer, to: engine.mainMixerNode, format: micMixer.outputFormat(forBus: 0))
-        
-        
-        print("After - Mic Input Out format: ", micInput.outputFormat(forBus: 0))
-        print("After - Mic Mixer In format:", micMixer.inputFormat(forBus: 0))
-        print("After - Main Mixer Out Format: ", engine.mainMixerNode.outputFormat(forBus: 0))
-        
 
         engine.prepare();
         
       do {
-        try engine.start();
-        ioPlayer.play();
+        try engine.start()
+//        self.ioPlayer.prepare(withFrameCount: 8)
+        self.ioPlayer.play();
+        micInput.installTap(onBus: 0, bufferSize: 2048, format: micFormat, block: handleInputBuffer)
       } catch {
         print("Error starting the player: \(error.localizedDescription)")
       }
@@ -163,76 +136,37 @@ public class MicInput {
     
     // TODO: remove this if not needed and uncomment tap for volume metering
     public func handleInputBuffer(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
-        guard let channelData = buffer.floatChannelData else { return }
-        let channelDataPointer = channelData.pointee
-        let channelDataValueArray0 = stride(
-          from: 0,
-          to: Int(buffer.frameLength),
-          by: buffer.stride)
-          .map { channelDataPointer[$0] }
-//            print("channelDataValueArray0", channelDataValueArray0)
-        let newBuffer = writeChannelDataForChannels(buffer: buffer)
-        
-        ioPlayer.scheduleBuffer(newBuffer, completionHandler: nil)
-            
+//        let newBuffer = writeChannelDataForChannels(buffer: buffer)
+        micInputQueue.async {
+            // Gets all channels from AVAudioPCMBuffer in an array
+            let channels = UnsafeBufferPointer(start: buffer.floatChannelData, count: Int(self.inputChannelCount))
+            // Gets data from the channel based on array index
+            let ch0Data = NSData(bytes: channels[0], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
+            let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: false)
+            let newBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat!, frameCapacity: UInt32(ch0Data.length) / audioFormat!.streamDescription.pointee.mBytesPerFrame)
+            newBuffer?.frameLength = newBuffer!.frameCapacity
+            let newChannels = UnsafeBufferPointer(start: newBuffer?.floatChannelData, count: Int((newBuffer?.format.channelCount)!))
+            ch0Data.getBytes(UnsafeMutableRawPointer(newChannels[0]), length: ch0Data.length)
+//            print("buffer bytes per frame: ", newBuffer!.format.streamDescription.pointee.mBytesPerFrame)
+//            print("buffer frame capacity: ", newBuffer!.frameCapacity)
+
+            self.ioPlayer.scheduleBuffer(newBuffer!, completionHandler: nil)
+        }
     }
     
-    private func writeChannelDataForChannels(buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer {
-        let channelCount = 6
-        let channels = UnsafeBufferPointer(start: buffer.floatChannelData, count: channelCount)
-        let ch0Data = NSData(bytes: channels[0], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-        let ch1Data = NSData(bytes: channels[1], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-        let ch2Data = NSData(bytes: channels[2], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-        let ch3Data = NSData(bytes: channels[3], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-        let ch4Data = NSData(bytes: channels[4], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-        let ch5Data = NSData(bytes: channels[5], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
-//        print("mBuffer Number", buffer.audioBufferList.pointee.mNumberBuffers)
-//        print("mBuffer Channels Number", buffer.audioBufferList.pointee.mBuffers.mData!)
-//        print("channelDataValueArray0", channelDataValueArray0)
-//        print("Channel 0", ch0Data.description);
-//        print("Channel 1", ch1Data.description);
-//        print("Channel 2", ch2Data.description);
-//        print("Channel 3", ch3Data.description);
-//        print("Channel 4", ch4Data.description);
-//        print("Channel 5", ch5Data.description);
-        
-        let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: false)
-        let newBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat!, frameCapacity: UInt32(ch3Data.length) / audioFormat!.streamDescription.pointee.mBytesPerFrame)
-        newBuffer?.frameLength = newBuffer!.frameCapacity
-        let newChannels = UnsafeBufferPointer(start: newBuffer?.floatChannelData, count: Int((newBuffer?.format.channelCount)!))
-        ch3Data.getBytes(UnsafeMutableRawPointer(newChannels[0]), length: ch3Data.length)
-//
-//        let newChannelData = newBuffer!.floatChannelData
-//        let newChannelDataPointer = newChannelData!.pointee
-//        let newChannelDataValueArray0 = stride(
-//          from: 0,
-//            to: Int(newBuffer!.frameLength),
-//          by: newBuffer!.stride)
-//          .map { newChannelDataPointer[$0] }
-//        print("newChannelDataValueArray0", newChannelDataValueArray0)
-        return newBuffer!
-    }
-    
-    private func writeBufferForChannelData(bufferObject: InputBufferData) {
+//    private func writeChannelDataForChannels(buffer: AVAudioPCMBuffer) -> AVAudioPCMBuffer {
+//        // Gets all channels from AVAudioPCMBuffer in an array
+//        let channels = UnsafeBufferPointer(start: buffer.floatChannelData, count: Int(inputChannelCount))
+//        // Gets data from the channel based on array index
+//        let ch0Data = NSData(bytes: channels[0], length:Int(buffer.frameCapacity * buffer.format.streamDescription.pointee.mBytesPerFrame))
 //        let audioFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: false)
-//        var newBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat!, frameCapacity: UInt32(bufferObject.channel[0].length) / audioFormat!.streamDescription.pointee.mBytesPerFrame)
+//        let newBuffer = AVAudioPCMBuffer(pcmFormat: audioFormat!, frameCapacity: UInt32(ch0Data.length) / audioFormat!.streamDescription.pointee.mBytesPerFrame)
 //        newBuffer?.frameLength = newBuffer!.frameCapacity
 //        let newChannels = UnsafeBufferPointer(start: newBuffer?.floatChannelData, count: Int((newBuffer?.format.channelCount)!))
 //        ch0Data.getBytes(UnsafeMutableRawPointer(newChannels[0]), length: ch0Data.length)
-//        guard let newChannelData = newBuffer!.floatChannelData else { return }
-//        let newChannelDataPointer = newChannelData.pointee
-//        let newChannelDataValueArray0 = stride(
-//          from: 0,
-//            to: Int(newBuffer!.frameLength),
-//          by: newBuffer!.stride)
-//          .map { newChannelDataPointer[$0] }
-//        print("newChannelDataValueArray0", newChannelDataValueArray0)
-    }
-    
-    public func bufferCompletion(){
-        ioBuffer.remove(at: 0)
-        ioPlayer.scheduleBuffer(ioBuffer[0], at: nil, options: .interrupts, completionHandler: bufferCompletion)
-    }
+//
+//        return newBuffer!
+//    }
 
     // MARK: Player Controls
     
