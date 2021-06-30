@@ -7,3 +7,10 @@
 //
 
 import Foundation
+import AVFoundation
+
+public class InputBufferData {
+    var channel: UnsafeBufferPointer<UnsafeMutablePointer<Float>>?;
+    var buffer: AVAudioPCMBuffer?;
+    var data: [NSData] = [];
+}
