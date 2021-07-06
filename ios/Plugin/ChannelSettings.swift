@@ -12,5 +12,5 @@ public class ChannelSettings {
     public var volume: Float?
     public var channelListenerName: String?
     public var eqSettings: EqSettings?
-    
+    public var channelNumber: Int?
 }

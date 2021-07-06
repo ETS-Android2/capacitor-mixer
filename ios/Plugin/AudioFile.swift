@@ -10,9 +10,14 @@ import Foundation
 import AVFoundation
 
 public class AudioFile {
-    public let engine: AVAudioEngine = AVAudioEngine()
+    public let engine: AVAudioEngine
     public let player: AVAudioPlayerNode = AVAudioPlayerNode()
     public let eq: AVAudioUnitEQ = AVAudioUnitEQ(numberOfBands: 3)
+    public var _parent: Mixer
+    public let playerMixer: AVAudioMixerNode = AVAudioMixerNode()
+    public var playerQueue: DispatchQueue
+    public var meterQueue: DispatchQueue
+    
     public var audioFile: AVAudioFile?
     public var audioSampleRate: Double = 0
     public var audioLengthSeconds: Double = 0
@@ -20,16 +25,15 @@ public class AudioFile {
     public var needsFileScheduled = true
     public var seekFrame: AVAudioFramePosition = 0
     public var listenerName: String = ""
-    public var _parent: Mixer
     
-    public let micMixer: AVAudioMixerNode = AVAudioMixerNode()
-    
-    public var tempTimer: Timer = Timer()
     public var elapsedTime: TimeInterval = 0
     public var elapsedTimeEventName: String = ""
     
-    init(parent: Mixer){
+    init(parent: Mixer, audioId: String){
         _parent = parent
+        engine = _parent.engine
+        playerQueue = DispatchQueue(label: "mixerPlugin.audioFile.queue.\(audioId)", qos: .userInitiated)
+        meterQueue = DispatchQueue(label: "mixerPlugin.audioMeter.queue.\(audioId)", qos: .userInitiated)
     }
     
     // MARK: setupAudio
@@ -77,23 +81,26 @@ public class AudioFile {
     
     // MARK: configureEngine
     public func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
-//        let micInput = engine.inputNode
-//        let micFormat = micInput.inputFormat(forBus: 0)
-        player.volume = channelSettings.volume!
+        if (engine.isRunning) {
+            engine.stop()
+        }
+        player.volume = 0.8
+        playerMixer.outputVolume = channelSettings.volume!
         
         engine.attach(player)
         engine.attach(eq)
-//        engine.attach(micMixer)
+        engine.attach(playerMixer)
+        
         if (channelSettings.channelListenerName != "") {
             listenerName = channelSettings.channelListenerName!
             player.removeTap(onBus: 0)
             player.installTap(onBus: 0, bufferSize: 1024, format: player.outputFormat(forBus: 0), block: handleMetering)
         }
         
+        // TODO 7/2 : want to uninitialize a node (Deinit and deinit and deinit well)
         engine.connect(player, to: eq, format: format)
-        engine.connect(eq, to: engine.mainMixerNode, format: format)
-//        engine.connect(micInput, to: micMixer, format: micFormat)
-//        engine.connect(micMixer, to: engine.mainMixerNode, format: micFormat)
+        engine.connect(eq, to: playerMixer, format: format)
+        engine.connect(playerMixer, to: engine.mainMixerNode, format: playerMixer.outputFormat(forBus: 0))
         engine.prepare()
         
       
@@ -109,80 +116,56 @@ public class AudioFile {
     
     // MARK: scheduleAudioFile
     public func scheduleAudioFile() {
-      guard let file = audioFile, needsFileScheduled else {
-        return
-      }
+        guard let file = audioFile, needsFileScheduled else {
+            return
+        }
         needsFileScheduled = false
         seekFrame = 0
-        player.volume = 1
-        // TODO: Look at a completion scheduler inside of player.scheduleFile
+        player.volume = 0.8
         player.scheduleFile(file, at: nil) {
-        self.needsFileScheduled = true
-      }
+            self.needsFileScheduled = true
+            DispatchQueue.main.asyncAfter(deadline: .now()+1.0) {
+                self.player.stop()
+            }
+        }
         // playOrPause()
     }
     
     // MARK: handleMetering
     public func handleMetering(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
         // https://www.raywenderlich.com/21672160-avaudioengine-tutorial-for-ios-getting-started
+        if (player.isPlaying) {
+            meterQueue.async {
+                guard let channelData = buffer.floatChannelData else { return }
+                  
+                let channelDataValue = channelData.pointee
 
-          guard let channelData = buffer.floatChannelData else { return }
-          
-          let channelDataValue = channelData.pointee
+                let channelDataValueArray = stride(
+                  from: 0,
+                  to: Int(buffer.frameLength),
+                  by: buffer.stride)
+                  .map { channelDataValue[$0] }
+                  
+                let rms = sqrt(channelDataValueArray.map {
+                    return $0 * $0
+                }
+                .reduce(0, +) / Float(buffer.frameLength))
+                  
+                let avgPower = 20 * log10(rms)
+        //          let meterLevel = self.scaledPower(power: avgPower)
+                let response = avgPower < -80 ? -80 : avgPower
 
-          let channelDataValueArray = stride(
-            from: 0,
-            to: Int(buffer.frameLength),
-            by: buffer.stride)
-            .map { channelDataValue[$0] }
-          
-          let rms = sqrt(channelDataValueArray.map {
-            return $0 * $0
-          }
-          .reduce(0, +) / Float(buffer.frameLength))
-          
-          let avgPower = 20 * log10(rms)
-//          let meterLevel = self.scaledPower(power: avgPower)
-        let response = avgPower < -80 ? -80 : avgPower
-
-        _parent.notifyListeners(listenerName, data: ["meterLevel": response])
-    }
-
-    
-    @objc func tempUpdateNumber(timer: Timer) {
-        let timerInfo: TimerInfo = timer.userInfo as! TimerInfo
-        var dataDictionary: [String: TimeInterval] = [:]
-        
-        if(player.currentElapsedTime > elapsedTime) {
-            elapsedTime = player.currentElapsedTime
-            dataDictionary["seconds"] = elapsedTime
-            timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
-        }
-    }
-    
-    public func setElapsedTimeEvent(eventName: String, mixer: Mixer) {
-        let timerInfo: TimerInfo = TimerInfo()
-        timerInfo.eventName = eventName
-        timerInfo.mixer = mixer
-        
-        elapsedTimeEventName = eventName
-        
-        DispatchQueue.main.async {
-            self.tempTimer = Timer.scheduledTimer(timeInterval: 1.0, target: self, selector: #selector(self.tempUpdateNumber), userInfo: timerInfo, repeats: true)
-        }
-    }
-    
-    @objc func elapsedTimeEvent(timer: Timer) {
-        let timerInfo: TimerInfo = timer.userInfo as! TimerInfo
-        var dataDictionary: [String: Double] = [:]
-        if let nodeTime: AVAudioTime = player.lastRenderTime, let playerTime: AVAudioTime = player.playerTime(forNodeTime: nodeTime) {
-               dataDictionary["value"] = Double(Double(playerTime.sampleTime) / playerTime.sampleRate)
+                self._parent.notifyListeners(self.listenerName, data: ["meterLevel": response])
+            
+                if (self.elapsedTimeEventName != "") {
+                    self._parent.notifyListeners(self.elapsedTimeEventName, data: self.player.elapsedTimeSeconds.toDictionary())
+                }
             }
-        else {
-            dataDictionary["value"] = 0
         }
-//        dataDictionary["value"] = seconds
-        timerInfo.mixer!.notifyListeners(timerInfo.eventName!, data: dataDictionary)
+    }
+    
+    public func setElapsedTimeEvent(eventName: String) {
+        elapsedTimeEventName = eventName
     }
     
 
@@ -192,17 +175,20 @@ public class AudioFile {
     
     // MARK: playOrPause
     public func playOrPause() -> String {
-        if (player.isPlaying) {
-            player.pause()
+        if (self.player.isPlaying) {
+            self.player.pause()
             return "pause"
         } else {
-          if (needsFileScheduled) {
-            scheduleAudioFile()
-          }
-            player.play()
+            if (self.needsFileScheduled) {
+                self.scheduleAudioFile()
+            }
+            playerQueue.async {
+                self.player.play()
+            }
             return "play"
         }
     }
+    
     // MARK: stop
     public func stop() -> String {
         elapsedTime = 0
@@ -218,12 +204,12 @@ public class AudioFile {
     
     // MARK: adjustVolume
     public func adjustVolume(volume: Float) {
-        player.volume = volume
+        playerMixer.outputVolume = volume
     }
     
     // MARK: getCurrentVolume
     public func getCurrentVolume() -> Float {
-        return player.volume
+        return playerMixer.outputVolume
     }
     
     // MARK: adjustEq

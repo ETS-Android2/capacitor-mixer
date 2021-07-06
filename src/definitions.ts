@@ -21,9 +21,13 @@ export interface BaseMixerRequest {
 
 export interface InitChannelRequest extends BaseMixerRequest {
   /**
-   * A string identifying the path to the audio file on device. Unused if initializing microphone channel.
+   * A string identifying the path to the audio file on device. Unused if initializing microphone channel
    */
   filePath?: string;
+  /**
+   * The channel number being initialized for microphone. Unused if initializing audio file
+   */
+  channelNumber?: number;
   /**
    * Optional bass gain setting for initialization: -36dB to +15 dB
    * 
@@ -179,6 +183,11 @@ export interface VolumeMeterResponse {
 export interface InitResponse {
   value: string
 }
+
+export interface ChannelCountResponse {
+  channelCount: number
+  deviceName: string
+}
 //#endregion
 
 export enum ResponseStatus {
@@ -256,5 +265,33 @@ export interface MixerPlugin extends Plugin {
    * @param request 
    */
   initMicInput(request: InitChannelRequest): Promise<BaseResponse<InitResponse>>;
+  /**
+   * Returns the count and name of the initialized audio device
+   */
+  getInputChannelCount(): Promise<BaseResponse<ChannelCountResponse>>;
+  /**
+   * Initializes audio session with passed-in port type,
+   * 
+   * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+   */
+  // TODO: write request for this
+  initAudioSession(): Promise<BaseResponse<InitResponse>>;
+  /**
+   * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+   */
+  getAudioSessionPreferredInputPortType(): Promise<BaseResponse<InitResponse>>;
+  /**
+   * De-initializes a mic input based on passed-in audioId
+   * 
+   * @param request audioId
+   */
+  destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<null>>;
+  /**
+   * De-initializes an audio file based on passed-in audioId
+   * 
+   * @param request audioId
+   */
+  destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<null>>;
+
 }
 

@@ -16,10 +16,8 @@
 		50ADFFA42020D75100D50D53 /* Capacitor.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50ADFFA52020D75100D50D53 /* Capacitor.framework */; };
 		50ADFFA82020EE4F00D50D53 /* Plugin.m in Sources */ = {isa = PBXBuildFile; fileRef = 50ADFFA72020EE4F00D50D53 /* Plugin.m */; };
 		50E1A94820377CB70090CE1A /* Plugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50E1A94720377CB70090CE1A /* Plugin.swift */; };
-		5990D0AE2666D5A2006DD620 /* WhiteNoise.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5990D0AD2666D5A2006DD620 /* WhiteNoise.mp3 */; };
 		59A48D96267A94FD0098AF17 /* ChannelSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59A48D95267A94FD0098AF17 /* ChannelSettings.swift */; };
 		59BA273A266AC7AE00C10C99 /* TimerInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BA2739266AC7AE00C10C99 /* TimerInfo.swift */; };
-		59BDB97F2656F4C9004FE715 /* KnewSomething.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 59BDB97E2656F4C9004FE715 /* KnewSomething.mp3 */; };
 		59BDB98426570A61004FE715 /* AudioFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59BDB98326570A61004FE715 /* AudioFile.swift */; };
 		59DB6C2F2673FD5300F7BC0D /* MicInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DB6C2E2673FD5300F7BC0D /* MicInput.swift */; };
 		59F10A402669634400B44BF5 /* EqSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F10A3F2669634400B44BF5 /* EqSettings.swift */; };
@@ -47,10 +45,8 @@
 		50ADFFA52020D75100D50D53 /* Capacitor.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Capacitor.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		50ADFFA72020EE4F00D50D53 /* Plugin.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Plugin.m; sourceTree = "<group>"; };
 		50E1A94720377CB70090CE1A /* Plugin.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Plugin.swift; sourceTree = "<group>"; };
-		5990D0AD2666D5A2006DD620 /* WhiteNoise.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = WhiteNoise.mp3; sourceTree = "<group>"; };
 		59A48D95267A94FD0098AF17 /* ChannelSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelSettings.swift; sourceTree = "<group>"; };
 		59BA2739266AC7AE00C10C99 /* TimerInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerInfo.swift; sourceTree = "<group>"; };
-		59BDB97E2656F4C9004FE715 /* KnewSomething.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = KnewSomething.mp3; sourceTree = "<group>"; };
 		59BDB98326570A61004FE715 /* AudioFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioFile.swift; sourceTree = "<group>"; };
 		59DB6C2E2673FD5300F7BC0D /* MicInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicInput.swift; sourceTree = "<group>"; };
 		59F10A3F2669634400B44BF5 /* EqSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EqSettings.swift; sourceTree = "<group>"; };
@@ -133,8 +129,6 @@
 		59BDB97D2656F4A6004FE715 /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				5990D0AD2666D5A2006DD620 /* WhiteNoise.mp3 */,
-				59BDB97E2656F4C9004FE715 /* KnewSomething.mp3 */,
 			);
 			name = "Supporting Files";
 			path = ..;
@@ -259,8 +253,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				59BDB97F2656F4C9004FE715 /* KnewSomething.mp3 in Resources */,
-				5990D0AE2666D5A2006DD620 /* WhiteNoise.mp3 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
