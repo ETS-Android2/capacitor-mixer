@@ -11,9 +11,11 @@ import Foundation
 import AVFoundation
 
 public class MicInput {
+
     public let engine: AVAudioEngine = AVAudioEngine()
     public let eq: AVAudioUnitEQ = AVAudioUnitEQ(numberOfBands: 3)
 
+    public var micInput: AVAudioInputNode?
     public let micMixer: AVAudioMixerNode = AVAudioMixerNode()
     public var _parent: Mixer
     public var listenerName: String = ""
@@ -32,7 +34,7 @@ public class MicInput {
     // TODO 7/5 : Handle audio session interrupts
     init(parent: Mixer, audioId: String){
         _parent = parent
-//        engine = _parent.engine
+        //        engine = _parent.engine
         micInputQueue = DispatchQueue(label: "mixerPlugin.micInput.queue.\(audioId)", qos: .userInitiated);
         meterQueue = DispatchQueue(label: "mixerPlugin.micMeter.queue.\(audioId)", qos: .userInitiated);
     }
@@ -77,7 +79,7 @@ public class MicInput {
             engine.stop()
         }
         
-        let micInput = engine.inputNode
+        micInput = engine.inputNode
         let micFormat = micInput.outputFormat(forBus: 0)
         inputChannelCount = micFormat.channelCount
         let toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)
@@ -108,7 +110,7 @@ public class MicInput {
         try engine.start()
 //        self.ioPlayer.prepare(withFrameCount: 8)
         self.ioPlayer.play();
-        micInput.installTap(onBus: 0, bufferSize: 512, format: micFormat, block: handleInputBuffer)
+        micInput!.installTap(onBus: 0, bufferSize: 512, format: micFormat, block: handleInputBuffer)
       } catch {
         print("Error starting the player: \(error.localizedDescription)")
       }
@@ -139,6 +141,7 @@ public class MicInput {
             let response = avgPower < -80 ? -80 : avgPower
 
             self._parent.notifyListeners(self.listenerName, data: ["meterLevel": response])
+            
         }
     }
     // MARK: Handle Input Buffer
@@ -258,5 +261,11 @@ public class MicInput {
           // 3
           return (abs(minDb) - abs(power)) / abs(minDb)
         }
+    }
+    
+    public func destroy(){
+        micMixer.removeTap(onBus: 0)
+        micInput?.removeTap(onBus: 0)
+        engine.stop()
     }
 }

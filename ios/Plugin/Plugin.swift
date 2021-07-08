@@ -10,8 +10,8 @@ import AVFoundation
 @objc(Mixer)
 public class Mixer: CAPPlugin {
     
-    public var audioFileList: [String : AudioFile] = [:]
-    public var micInputList: [String : MicInput] = [:]
+    private var audioFileList: [String : AudioFile] = [:]
+    private var micInputList: [String : MicInput] = [:]
     public let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
     public var engine: AVAudioEngine = AVAudioEngine()
     
@@ -31,7 +31,6 @@ public class Mixer: CAPPlugin {
         }) {
             do {
                 try audioSession.setPreferredInput(desc)
-                print("AudioSession Channels", desc.channels)
                 try audioSession.setActive(true)
             } catch let error {
                 print(error)
@@ -97,16 +96,16 @@ public class Mixer: CAPPlugin {
         channelSettings.channelNumber = channelNumber
         
         micInputList[audioId] = MicInput(parent: self, audioId: audioId)
-        micInputList[audioId]?.setupAudio(audioFilePath: NSURL(), channelSettings: channelSettings)
+        
+        micInputList[audioId]?.setupAudio(audioFilePath: NSURL(fileURLWithPath: ""), channelSettings: channelSettings)
         call.success(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized"))
     }
     
     // MARK: destroyMicInput
     @objc func destroyMicInput(_ call: CAPPluginCall) {
         guard let audioId = getAudioId(call: call, functionName: "isPlaying") else {return}
-        var destroy = micInputList[audioId]
+        micInputList[audioId]?.destroy()
         micInputList[audioId] = nil
-        destroy = nil
         call.success(buildBaseResponse(wasSuccessful: true, message: "Mic input \(audioId) destroyed"))
     }
     
@@ -320,7 +319,7 @@ public class Mixer: CAPPlugin {
     @objc func getInputChannelCount(_ call: CAPPluginCall) {
         let channelCount = engine.inputNode.outputFormat(forBus: 0).channelCount;
         let deviceName = audioSession.preferredInput?.portName
-        call.success(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName]))
+        call.success(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName ?? ""]))
     }
     
     //6.14 CHANGED ERROR CHECKING TO INCLUDE MICINPUTLIST
