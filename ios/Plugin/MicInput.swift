@@ -80,7 +80,7 @@ public class MicInput {
         }
         
         micInput = engine.inputNode
-        let micFormat = micInput.outputFormat(forBus: 0)
+        let micFormat = micInput!.outputFormat(forBus: 0)
         inputChannelCount = micFormat.channelCount
         let toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)
         selectedInputChannel = channelSettings.channelNumber!
@@ -263,9 +263,12 @@ public class MicInput {
         }
     }
     
-    public func destroy(){
+    // MARK: Destroy
+    public func destroy() -> [String : String] {
         micMixer.removeTap(onBus: 0)
         micInput?.removeTap(onBus: 0)
         engine.stop()
+        return ["listenerName": self.listenerName,
+                "elapsedTimeEventName": ""]
     }
 }

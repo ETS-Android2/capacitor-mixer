@@ -15,7 +15,8 @@ import {
   PlaybackStateResponse,
   ResponseStatus,
   SetEventRequest,
-  VolumeResponse
+  VolumeResponse,
+  DestroyResponse
 } from './definitions';
 
 export class MixerWeb extends WebPlugin implements MixerPlugin {
@@ -72,14 +73,14 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: "not implemented" } };
   }
 
-  async destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<null>> {
+  async destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>> {
     console.log('not implemented', request)
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { listenerName: "", elapsedTimeEventName: "" } };
   }
 
-  async destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<null>> {
+  async destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>> {
     console.log('not implemented', request)
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { listenerName: "", elapsedTimeEventName: "" } };
   }
 
 

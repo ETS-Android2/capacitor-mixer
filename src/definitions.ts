@@ -139,6 +139,12 @@ export interface SetEventRequest extends BaseMixerRequest {
    */
   eventName: string;
 }
+
+export interface InitAudioSessionRequest {
+  inputPortType?: AudioSessionPortType,
+  // outputPortType?: AudioSessionPortType,
+  ioBufferDuration: number
+}
 //#endregion
 
 //#region Response Objects
@@ -188,6 +194,23 @@ export interface ChannelCountResponse {
   channelCount: number
   deviceName: string
 }
+/**
+ * listenerName and elapsedTimeEventNames will be populated 
+ * with each appropriate event name. 
+ * If names not found, empty string will be returned.
+ */
+export interface DestroyResponse {
+  listenerName: string
+  elapsedTimeEventName: string
+}
+
+export interface InitAudioSessionResponse {
+  preferredInputPortType: AudioSessionPortType,
+  // preferredOutputPortType: AudioSessionPortType,
+  preferredInputPortName: string,
+  // preferredOutputPortName: string,
+  preferredIOBufferDuration: number
+}
 //#endregion
 
 export enum ResponseStatus {
@@ -204,6 +227,29 @@ export enum EqType {
 export enum InputType {
   MIC = "mic",
   FILE = "file"
+}
+
+export enum AudioSessionPortType {
+  AVB = "avb",
+  HDMI = "hdmi",
+  PCI = "pci",
+  AIRPLAY = "airplay",
+  BLUETOOTH_A2DP = "bluetoothA2DP",
+  BLUETOOTH_HFP = "bluetoothHFP",
+  BLUETOOTH_LE = "bluetoothLE",
+  BUILT_IN_MIC = "builtInMic",
+  BUILT_IN_RECEIVER = "builtInReceiver",
+  BUILT_IN_SPEAKER = "builtInSpeaker",
+  CAR_AUDIO = "carAudio",
+  DISPLAY_PORT = "displayPort",
+  FIREWIRE = "firewire",
+  HEADPHONES = "headphones",
+  HEADSET_MIC = "headsetMic",
+  LINE_IN = "lineIn",
+  LINE_OUT = "lineOut",
+  THUNDERBOLT = "thunderbolt",
+  USB_AUDIO = "usbAudio",
+  VIRTUAL = "virtual"
 }
 
 export interface MixerPlugin extends Plugin {
@@ -248,8 +294,11 @@ export interface MixerPlugin extends Plugin {
    * @param request 
    */
   adjustEq(request: AdjustEqRequest): Promise<BaseResponse<null>>;
-
-  setElapsedTimeEvent(request: SetEventRequest): Promise<BaseResponse<null>>; // Gonna get rid of this, no comments
+  /**
+   * Sets an elapsed time event for a given audioId. Only applicable for audio files.
+   * @param request 
+   */
+  setElapsedTimeEvent(request: SetEventRequest): Promise<BaseResponse<null>>;
   /**
    * Returns an object representing hours, minutes, seconds, and milliseconds elapsed
    * @param request 
@@ -285,13 +334,13 @@ export interface MixerPlugin extends Plugin {
    * 
    * @param request audioId
    */
-  destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<null>>;
+  destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
   /**
    * De-initializes an audio file based on passed-in audioId
    * 
    * @param request audioId
    */
-  destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<null>>;
+  destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
 
 }
 

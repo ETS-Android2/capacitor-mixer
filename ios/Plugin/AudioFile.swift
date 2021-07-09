@@ -265,6 +265,17 @@ public class AudioFile {
     public func getTotalTime() -> [String: Int] {
         return (audioFile?.totalDurationSeconds.toDictionary())!
     }
+    
+    // MARK: Destroy
+    public func destroy() -> [String : String] {
+        player.removeTap(onBus: 0)
+        
+        engine.detach(player)
+        engine.detach(eq)
+        engine.detach(playerMixer)
+        return ["listenerName": self.listenerName,
+                "elapsedTimeEventName": self.elapsedTimeEventName]
+    }
 }
 
 extension TimeInterval{
