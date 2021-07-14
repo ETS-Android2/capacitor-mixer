@@ -12,70 +12,173 @@ public class Mixer: CAPPlugin {
     
     private var audioFileList: [String : AudioFile] = [:]
     private var micInputList: [String : MicInput] = [:]
-    public let audioSession: AVAudioSession = AVAudioSession.sharedInstance()
+    public var audioSession: AVAudioSession = AVAudioSession.sharedInstance()
     public var engine: AVAudioEngine = AVAudioEngine()
     public var isAudioSessionActive: Bool = false
     public var audioFileInterruptionList: [String] = []
+    public var audioSessionListenerName: String = ""
+    public let nc: NotificationCenter = NotificationCenter.default
     
     public override func load() {
         super.load()
-        print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
-        print("preferredInput: ", audioSession.preferredInput)
-        print("preferredOutput: ", audioSession.outputDataSources)
-        do {
-            try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
-            try audioSession.setPreferredIOBufferDuration(0.005)
-        }
-        catch {
-            print("Problem initializing audio session")
-        }
-        if let desc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
-            print("Available Input: ", desc)
-            return desc.portType == .usbAudio
-        }) {
-            do {
-                try audioSession.setPreferredInput(desc)
-                try audioSession.setActive(true)
-            } catch let error {
-                print(error)
-            }
-        }
-        isAudioSessionActive = true
-        registerForSessionInterrupts()
     }
     
     // MARK: initAudioSession
-    // TODO: 7/6 Implement and test
     @objc func initAudioSession(_ call: CAPPluginCall) {
+        initAudioProxy(call)
+//        if (isAudioSessionActive == true) {
+//            call.resolve(buildBaseResponse(wasSuccessful: false, message: "Audio Session is already active, please call 'deinitAudioSession' prior to initializing a new audio session."))
+//            return
+//        }
+//
+//        audioSessionListenerName = call.getString("audioSessionListenerName") ?? ""
+//        let inputPortType = call.getString("inputPortType") ?? ""
+////        let outputPortType = call.getString("outputPortType") ?? ""
+//        let ioBufferDuration = call.getDouble("ioBufferDuration") ?? -1
+//
+//        do {
+////            try audioSession.setActive(false)
+//            try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
+//            if (ioBufferDuration > 0) {
+//                try audioSession.setPreferredIOBufferDuration(ioBufferDuration)
+//            }
+////            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+//        }
+//        catch let error {
+//            isAudioSessionActive = false
+//            call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+//            return
+//        }
+//        if let inputDesc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
+//            print("Available Input: ", desc)
+//            return determineAudioSessionPortDescription(desc: desc, type: inputPortType)
+//        }) {
+//            do {
+////                try audioSession.setActive(false)
+//                try audioSession.setPreferredInput(inputDesc)
+////                try audioSession.setActive(true)
+//            } catch let error {
+//                isAudioSessionActive = false
+//                call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+//                print(error)
+//                return
+//            }
+//        }
+//        do {
+//            try audioSession.setActive(true)
+//            print("Current route is: \(audioSession.currentRoute)")
+//            registerForSessionInterrupts()
+//            registerForSessionRouteChange()
+//        } catch let error {
+//            isAudioSessionActive = false
+//            call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+//            print(error)
+//            return
+//        }
+//
+//        let response = ["preferredInputPortType": audioSession.preferredInput?.portType as Any,
+//                        "preferredInputPortName": audioSession.preferredInput?.portName as Any,
+//                        "preferredIOBufferDuration": Float(audioSession.preferredIOBufferDuration)] as [String : Any]
+//        print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
+//        isAudioSessionActive = true
+//
+//        call.success(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
+    }
+    
+    // MARK: initAudioProxy
+    private func initAudioProxy(_ call: CAPPluginCall) {
+        if (isAudioSessionActive == true) {
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "Audio Session is already active, please call 'deinitAudioSession' prior to initializing a new audio session."))
+            return
+        }
+        
+        audioSessionListenerName = call.getString("audioSessionListenerName") ?? ""
         let inputPortType = call.getString("inputPortType") ?? ""
 //        let outputPortType = call.getString("outputPortType") ?? ""
         let ioBufferDuration = call.getDouble("ioBufferDuration") ?? -1
+        
+        do {
+//            try audioSession.setActive(false)
+            try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
+            if (ioBufferDuration > 0) {
+                try audioSession.setPreferredIOBufferDuration(ioBufferDuration)
+            }
+//            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        }
+        catch let error {
+            isAudioSessionActive = false
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+            return
+        }
         if let inputDesc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
             print("Available Input: ", desc)
             return determineAudioSessionPortDescription(desc: desc, type: inputPortType)
         }) {
             do {
-                try audioSession.setActive(false)
+//                try audioSession.setActive(false)
                 try audioSession.setPreferredInput(inputDesc)
-                print("AudioSession Channels", inputDesc.channels)
+//                try audioSession.setActive(true)
             } catch let error {
+                isAudioSessionActive = false
+                call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
                 print(error)
+                return
             }
         }
         do {
+//            try audioSession.setActive(true)
+            print("Current route is: \(audioSession.currentRoute)")
+            registerForSessionInterrupts()
+            registerForSessionRouteChange()
+            registerForMediaServicesWereReset()
+            registerForMediaServicesWereLost()
+        } catch let error {
+            isAudioSessionActive = false
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+            print(error)
+            return
+        }
+        
+        let response = ["preferredInputPortType": audioSession.preferredInput?.portType as Any,
+                        "preferredInputPortName": audioSession.preferredInput?.portName as Any,
+                        "preferredIOBufferDuration": Float(audioSession.preferredIOBufferDuration)] as [String : Any]
+        print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
+        isAudioSessionActive = true
+
+        call.success(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
+    }
+    
+    // MARK: deinitAudioSession
+    @objc func deinitAudioSession(_ call: CAPPluginCall) {
+        do {
             try audioSession.setActive(false)
-            try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
-            if (ioBufferDuration > 0) {
-                try audioSession.setPreferredIOBufferDuration(ioBufferDuration)
-            }
-            try audioSession.setActive(true)
-            let response = ["preferredInputPortType": audioSession.preferredInput?.portType as Any, "preferredInputPortName": audioSession.preferredInput!.portName, "preferredIOBufferDuration": audioSession.preferredIOBufferDuration] as [String : Any]
-            call.success(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
+            isAudioSessionActive = false
+            call.success(buildBaseResponse(wasSuccessful: true, message: "Successfully deinitialized audio session"))
+        } catch let error {
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "ERROR deinitializing audio session with exception: \(error)"))
+            return
         }
-        catch {
-            print("Problem initializing audio session")
+    }
+    
+    // MARK: resetPlugin
+    @objc func restartPlugin(_ call: CAPPluginCall) {
+        do {
+            try audioSession.setActive(false)
+            isAudioSessionActive = false
+        } catch let error {
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "ERROR deinitializing audio session with exception: \(error)"))
+            return
         }
-       
+        audioFileList.forEach { (key: String, value: AudioFile) in
+            _ = value.destroy()
+        }
+        micInputList.forEach { (key: String, value: MicInput) in
+            _ = value.destroy()
+        }
+        audioFileList = [:]
+        micInputList = [:]
+        engine = AVAudioEngine()
+        audioSession = AVAudioSession.sharedInstance()
     }
     
     // MARK: getAudioSessionPreferredInputPortType
@@ -349,7 +452,7 @@ public class Mixer: CAPPlugin {
     // MARK: getInputChannelCount
     @objc func getInputChannelCount(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        let channelCount = engine.inputNode.outputFormat(forBus: 0).channelCount;
+        let channelCount = engine.inputNode.inputFormat(forBus: 0).channelCount;
         let deviceName = audioSession.preferredInput?.portName
         call.success(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName ?? ""]))
     }
@@ -477,11 +580,82 @@ public class Mixer: CAPPlugin {
         }
     }
     
+    // TODO: Think about removing this observer when audioSession.isActive is set to false
     private func registerForSessionInterrupts() {
-        let nc = NotificationCenter.default
+//        let nc = NotificationCenter.default
         nc.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: audioSession)
     }
     
+    // TODO: Think about removing this observer when audioSession.isActive is set to false
+    private func registerForSessionRouteChange() {
+//        let nc = NotificationCenter.default
+        nc.addObserver(self, selector: #selector(handleRouteChange), name: AVAudioSession.routeChangeNotification, object: audioSession)
+    }
+    
+    private func registerForMediaServicesWereReset() {
+        nc.addObserver(self, selector: #selector(handleServiceReset), name: AVAudioSession.mediaServicesWereResetNotification, object: audioSession)
+    }
+    
+    private func registerForMediaServicesWereLost() {
+        nc.addObserver(self, selector: #selector(handleServiceLost), name: AVAudioSession.mediaServicesWereLostNotification, object: audioSession)
+    }
+    
+    // MARK: handleRouteChange
+    @objc func handleRouteChange(notification: Notification) {
+//        DispatchQueue.main.async {
+        print("handleRouteChange occurred with notification: \(notification)")
+        guard let userInfo = notification.userInfo,
+              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue)
+        else {return}
+        switch reason {
+            case .oldDeviceUnavailable:
+                print("Old device unavailable")
+                self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": "ROUTE_DEVICE_DISCONNECTED"])
+                self.micInputList.forEach { (key: String, value: MicInput) in
+                    value.interrupt()
+                }
+            case .newDeviceAvailable:
+                print("New device is available!")
+                self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": "ROUTE_DEVICE_RECONNECTED"])
+                self.micInputList.forEach { (key: String, value: MicInput) in
+                    value.resumeFromInterrupt()
+                }
+            case .routeConfigurationChange:
+                print("Route has changed")
+                self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": ""])
+            case .noSuitableRouteForCategory:
+                print("No suitable route for category.")
+            case .override:
+                print("Route overridden")
+                if let inputDesc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
+                    print("Available Input: ", desc)
+                    return desc.portType == .usbAudio
+                }) {
+                    do {
+        //                try audioSession.setActive(false)
+                        try audioSession.setPreferredInput(inputDesc)
+        //                try audioSession.setActive(true)
+                    } catch let error {
+//                        isAudioSessionActive = false
+//                        call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
+                        print(error)
+                        return
+                    }
+                }
+            case .categoryChange:
+                print("Category has changed.")
+            case .unknown:
+                print("unknown: issa big mystery!")
+            case .wakeFromSleep:
+                print("Hello world!")
+            default:
+                ()
+            }
+//        }
+    }
+    
+    // MARK: handleInterruption
     @objc func handleInterruption(notification: Notification) {
         guard let userInfo = notification.userInfo,
               let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
@@ -490,13 +664,16 @@ public class Mixer: CAPPlugin {
         
         switch type {
         case .began:
+            print("AudioSession interrupted!")
             audioFileList.forEach{ (key: String, value: AudioFile) in
                 if (value.isPlaying()) {
                     value.player.pause()
                     self.audioFileInterruptionList.append(key)
                 }
             }
+            notifyListeners(audioSessionListenerName, data: ["handlerType": "INTERRUPT_BEGAN"])
         case .ended:
+            print("AudioSession resuming...")
             guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {return}
             let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
             if (options.contains(.shouldResume)) {
@@ -507,8 +684,22 @@ public class Mixer: CAPPlugin {
             } else {
                 //An interruption ended. Don't resume playback.
             }
+            notifyListeners(audioSessionListenerName, data: ["handlerType": "INTERRUPT_ENDED"])
         default:
             ()
         }
     }
+    
+    @objc func handleServiceReset(notification: Notification) {
+//        guard let userInfo = notification.userInfo,
+//              let typeValue = userInfo[AVAudioSession] as? UInt,
+//              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+//        else {return}
+        print("From handleServiceReset - Notification is: \(notification)")
+    }
+    
+    @objc func handleServiceLost(notification: Notification) {
+        print("From handleServiceLost - Notification is: \(notification)")
+    }
+    
 }

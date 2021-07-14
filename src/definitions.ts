@@ -129,7 +129,6 @@ export interface ChannelPropertyRequest extends BaseMixerRequest {
   inputType: InputType;
 }
 
-
 /**
  * Request to set an event listener
  */
@@ -143,7 +142,8 @@ export interface SetEventRequest extends BaseMixerRequest {
 export interface InitAudioSessionRequest {
   inputPortType?: AudioSessionPortType,
   // outputPortType?: AudioSessionPortType,
-  ioBufferDuration: number
+  ioBufferDuration?: number
+  audioSessionListenerName?: string
 }
 //#endregion
 
@@ -252,6 +252,33 @@ export enum AudioSessionPortType {
   VIRTUAL = "virtual"
 }
 
+export enum AudioSessionHandlerTypes {
+  /**
+   * Invoked when another audio session has started
+   * 
+   * This can cause your audio to be 'ducked', or silenced with the audio session
+   */
+  INTERRUPT_BEGAN = "INTERRUPT_BEGAN",
+  /**
+   * Invoked when another audio session has ended
+   * 
+   * Your audio session should resume
+   */
+  INTERRUPT_ENDED = "INTERRUPT_ENDED",
+  /**
+   * Invoked when the device you're currently connected to is disconnected from the audio session
+   */
+  ROUTE_DEVICE_DISCONNECTED = "ROUTE_DEVICE_DISCONNECTED",
+  /**
+   * Invoked when previously-used device is reconnected to the audio session
+   */
+  ROUTE_DEVICE_RECONNECTED = "ROUTE_DEVICE_RECONNECTED",
+  /**
+   * Invoked when previously-UNUSED device is connected to the audio session
+   */
+  ROUTE_NEW_DEVICE_FOUND = "ROUTE_NEW_DEVICE_FOUND"
+}
+
 export interface MixerPlugin extends Plugin {
   echo(request: { value: string }): Promise<{ value: string }>;
   /**
@@ -323,8 +350,17 @@ export interface MixerPlugin extends Plugin {
    * 
    * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
    */
-  // TODO: write request for this
-  initAudioSession(): Promise<BaseResponse<InitResponse>>;
+  initAudioSession(request: InitAudioSessionRequest): Promise<BaseResponse<InitAudioSessionResponse>>;
+  /**
+   * Sets 'isAudioSessionActive' bool to false, does not reset plugin state
+   */
+  deinitAudioSession(): Promise<BaseResponse<null>>;
+  /**
+   * Resets plugin state back to its initial state
+   * 
+   * CAUTION: This will completely wipe everything you have initialized from the plugin!
+   */
+  resetPlugin(): Promise<BaseResponse<null>>;
   /**
    * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
    */
@@ -341,6 +377,5 @@ export interface MixerPlugin extends Plugin {
    * @param request audioId
    */
   destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
-
 }
 

@@ -27,6 +27,7 @@ public class MicInput {
     
     public var inputChannelCount: AVAudioChannelCount = 0;
     public var selectedInputChannel: Int = -1;
+    public var toFormat: AVAudioFormat;
     
 
     // TODO 7/2 : Want to be able to deinitialize mic channels
@@ -37,6 +38,7 @@ public class MicInput {
         //        engine = _parent.engine
         micInputQueue = DispatchQueue(label: "mixerPlugin.micInput.queue.\(audioId)", qos: .userInitiated);
         meterQueue = DispatchQueue(label: "mixerPlugin.micMeter.queue.\(audioId)", qos: .userInitiated);
+        toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)!
     }
     
     deinit {
@@ -82,7 +84,7 @@ public class MicInput {
         micInput = engine.inputNode
         let micFormat = micInput!.outputFormat(forBus: 0)
         inputChannelCount = micFormat.channelCount
-        let toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)
+//        toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)
         selectedInputChannel = channelSettings.channelNumber!
         
         ioPlayer.volume = 0.8
@@ -99,7 +101,6 @@ public class MicInput {
             micMixer.installTap(onBus: 0, bufferSize: 1024, format: micMixer.outputFormat(forBus: 0), block: handleMetering)
         }
         
-
         engine.connect(ioPlayer, to: eq, format: toFormat)
         engine.connect(eq, to: micMixer, format: toFormat)
         engine.connect(micMixer, to: engine.mainMixerNode, format: micMixer.outputFormat(forBus: 0))
@@ -260,6 +261,30 @@ public class MicInput {
         } else {
           // 3
           return (abs(minDb) - abs(power)) / abs(minDb)
+        }
+    }
+    
+    // MARK: interrupt
+    public func interrupt() {
+        micMixer.removeTap(onBus: 0)
+        micInput!.removeTap(onBus: 0)
+        ioPlayer.stop()
+        engine.stop()
+    }
+    
+    // MARK: resumeFromInterrupt
+    public func resumeFromInterrupt() {
+        micInput = engine.inputNode
+        if (listenerName != "") {
+            micMixer.installTap(onBus: 0, bufferSize: 1024, format: micMixer.outputFormat(forBus: 0), block: handleMetering)
+        }
+        ioPlayer.play()
+        do {
+            try engine.start()
+            micInput!.installTap(onBus: 0, bufferSize: 512, format: micInput!.outputFormat(forBus: 0), block: handleInputBuffer)
+            ioPlayer.play()
+        } catch let error {
+            print("Error resuming from interrupt with error: \(error)")
         }
     }
     

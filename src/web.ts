@@ -16,7 +16,10 @@ import {
   ResponseStatus,
   SetEventRequest,
   VolumeResponse,
-  DestroyResponse
+  DestroyResponse,
+  InitAudioSessionResponse,
+  InitAudioSessionRequest,
+  AudioSessionPortType
 } from './definitions';
 
 export class MixerWeb extends WebPlugin implements MixerPlugin {
@@ -63,9 +66,19 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     };
   }
 
-  async initAudioSession(): Promise<BaseResponse<InitResponse>> {
+  async initAudioSession(request: InitAudioSessionRequest): Promise<BaseResponse<InitAudioSessionResponse>> {
+    console.log('not implemented', request)
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { preferredIOBufferDuration: -1, preferredInputPortName: "", preferredInputPortType: AudioSessionPortType.BUILT_IN_MIC } };
+  }
+
+  async deinitAudioSession(): Promise<BaseResponse<null>> {
     console.log('not implemented')
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: "not implemented" } };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+  }
+
+  async resetPlugin(): Promise<BaseResponse<null>> {
+    console.log('not implemented')
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
   async getAudioSessionPreferredInputPortType(): Promise<BaseResponse<InitResponse>> {

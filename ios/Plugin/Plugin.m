@@ -21,4 +21,6 @@ CAP_PLUGIN(Mixer, "Mixer",
            CAP_PLUGIN_METHOD(getAudioSessionPreferredInputPortType, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(destroyMicInput, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(destroyAudioFile, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(deinitAudioSession, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(resetPlugin, CAPPluginReturnPromise);
 )
