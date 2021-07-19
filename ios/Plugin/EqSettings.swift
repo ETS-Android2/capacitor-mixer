@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import AVFoundation
 
 public class EqSettings {
     public var bassGain: Float?
