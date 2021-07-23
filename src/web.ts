@@ -68,7 +68,7 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
 
   async initAudioSession(request: InitAudioSessionRequest): Promise<BaseResponse<InitAudioSessionResponse>> {
     console.log('not implemented', request)
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: { preferredIOBufferDuration: -1, preferredInputPortName: "", preferredInputPortType: AudioSessionPortType.BUILT_IN_MIC } };
+    return { status: ResponseStatus.ERROR, message: "not implemented for the web", data: { preferredIOBufferDuration: -1, preferredInputPortName: "", preferredInputPortType: AudioSessionPortType.BUILT_IN_MIC } };
   }
 
   async deinitAudioSession(): Promise<BaseResponse<null>> {

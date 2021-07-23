@@ -281,9 +281,7 @@ public class AudioFile {
 extension TimeInterval{
 
     func toDictionary() -> [String : Int] {
-
         let time = NSInteger(self)
-
         let milliSeconds = Int((self.truncatingRemainder(dividingBy: 1)) * 1000)
         let seconds = time % 60
         let minutes = (time / 60) % 60
@@ -295,7 +293,6 @@ extension TimeInterval{
             "minutes": minutes,
             "hours": hours
         ]
-
     }
 }
 

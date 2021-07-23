@@ -222,7 +222,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initAudioFile - audioId already in use"))
             return
         }
-        // TODO: implement check for overwriting existing audioID
+        // TODO: move filePath scrubbing into AudioFile.setupAudio? <-- Human question mark, not swift question mark
         audioFileList[audioId] = AudioFile(parent: self, audioId: audioId)
         if (filePath != "") {
             let scrubbedString = filePath.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? ""
