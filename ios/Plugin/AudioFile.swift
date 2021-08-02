@@ -93,8 +93,8 @@ public class AudioFile {
         
         if (channelSettings.channelListenerName != "") {
             listenerName = channelSettings.channelListenerName!
-            player.removeTap(onBus: 0)
-            player.installTap(onBus: 0, bufferSize: 1024, format: player.outputFormat(forBus: 0), block: handleMetering)
+            playerMixer.removeTap(onBus: 0)
+            playerMixer.installTap(onBus: 0, bufferSize: 1024, format: playerMixer.outputFormat(forBus: 0), block: handleMetering)
         }
         
         // TODO 7/2 : want to uninitialize a node (Deinit and deinit and deinit well)
@@ -268,7 +268,7 @@ public class AudioFile {
     
     // MARK: Destroy
     public func destroy() -> [String : String] {
-        player.removeTap(onBus: 0)
+        playerMixer.removeTap(onBus: 0)
         
         engine.detach(player)
         engine.detach(eq)

@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.audiofx.DynamicsProcessing;
+import android.media.audiofx.Visualizer;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -17,12 +18,16 @@ import android.util.Log;
 import android.media.audiofx.DynamicsProcessing.Eq;
 import android.media.audiofx.DynamicsProcessing.EqBand;
 
+
 import com.getcapacitor.JSObject;
 
 import java.io.File;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.skylabs.mixer.Utils.getPath;
 
 public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener {
     Mixer _parent;
@@ -30,6 +35,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     private Eq eq;
     private DynamicsProcessing dp;
     private float currentVolume;
+    private Visualizer visualizer;
+    public String elapsedTimeEventName = "";
+    public String listenerName = "";
+    public boolean visualizerState = true;
+    private Visualizer.MeasurementPeakRms measurementPeakRms;
 
 
     public AudioFile(Mixer parent) {
@@ -43,7 +53,7 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         try {
             Uri uri = Uri.parse(audioFilePath);
             String filePath = getPath(_parent._context, uri);
-            File file = new File(new URI(filePath));
+            File file = new File(filePath);
             ParcelFileDescriptor pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
             AssetFileDescriptor afd = new AssetFileDescriptor(pfd, 0, -1);
             player.setAudioAttributes(new AudioAttributes.Builder()
@@ -62,50 +72,58 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
 
     private void setupEq(ChannelSettings channelSettings) {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            EqBand bassEq = new EqBand(true, 200, 0);
-            EqBand midEq = new EqBand(true, 1499, 0);
-            EqBand trebleEq = new EqBand(true, 20000, 0);
+            EqBand bassEq = new EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
+            EqBand midEq = new EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
+            EqBand trebleEq = new EqBand(true, (float)channelSettings.eqSettings.trebleFrequency, (float)channelSettings.eqSettings.trebleGain);
             eq = new Eq(true, true, 3);
             eq.setBand(0, bassEq);
             eq.setBand(1, midEq);
             eq.setBand(2, trebleEq);
-            dp = new DynamicsProcessing(player.getAudioSessionId());
+            DynamicsProcessing.Config config = new DynamicsProcessing.Config.Builder(
+                    DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
+                    1,
+                    false, 0,
+                    false, 0,
+                    true, 3,
+                    false
+            ).setPreferredFrameDuration(10).build();
+            dp = new DynamicsProcessing(0, player.getAudioSessionId(), config);
             dp.setPostEqAllChannelsTo(eq);
         }
         configureEngine(channelSettings);
     }
 
     private void configureEngine(ChannelSettings channelSettings) {
+        if (!channelSettings.channelListenerName.isEmpty()) {
+            listenerName = channelSettings.channelListenerName;
+        }
         dp.setEnabled(true);
         currentVolume = (float)channelSettings.volume;
         player.setVolume(currentVolume, currentVolume);
     }
 
-    public void scheduleAudioFile() {
-
-    }
-
-    public void handleMetering() {
-
-    }
-
     public void setElapsedTimeEvent(String eventName) {
-
+        elapsedTimeEventName = eventName;
     }
 
     public String playOrPause() {
         if (player.isPlaying()) {
             player.pause();
+            destroyVisualizerListener();
             return "pause";
         } else {
             player.start();
+            initVisualizerListener();
             return "play";
         }
     }
 
     public String stop() {
-        player.stop();
+        if (player.isPlaying()) {
+            player.pause();
+        }
         player.seekTo(0);
+        destroyVisualizerListener();
         return "stop";
     }
 
@@ -124,68 +142,71 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     }
 
     public void adjustEq(String type, double gain, double freq) {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             if (eq.getBandCount() < 1) {
                 return;
             }
-            switch (type) {
-                case "bass":
-                    EqBand bassEq = eq.getBand(0);
-                    bassEq.setGain((float)gain);
-                    bassEq.setCutoffFrequency((float)freq);
-                case "mid":
-                    EqBand midEq = eq.getBand(1);
-                    midEq.setGain((float)gain);
-                    midEq.setCutoffFrequency((float)freq);
-                case "treble":
-                    EqBand trebleEq = eq.getBand(2);
-                    trebleEq.setGain((float)gain);
-                    trebleEq.setCutoffFrequency((float)freq);
-                default:
-                    System.out.println("adjustEq: invalid eq type");
+            if (type.equals("bass")) {
+                EqBand bassEq = eq.getBand(0);
+                bassEq.setGain((float) gain);
+                bassEq.setCutoffFrequency((float) freq);
+                eq.setBand(0, bassEq);
+                dp.setPostEqAllChannelsTo(eq);
+            }
+            else if (type.equals("mid")) {
+                EqBand midEq = eq.getBand(1);
+                midEq.setGain((float) gain);
+                midEq.setCutoffFrequency((float) freq);
+                eq.setBand(1, midEq);
+                dp.setPostEqAllChannelsTo(eq);
+            }
+            else if (type.equals("treble")) {
+                EqBand trebleEq = eq.getBand(2);
+                trebleEq.setGain((float) gain);
+                trebleEq.setCutoffFrequency((float) freq);
+                eq.setBand(2, trebleEq);
+                dp.setPostEqAllChannelsTo(eq);
+            }
+            else {
+                System.out.println("adjustEq: invalid eq type");
             }
         }
     }
 
-    public EqSettings getCurrentEq() {
-//        Map<String, Object> currentEq = new HashMap<String, Object>();
-        EqSettings currentEq = new EqSettings();
+    public Map<String, Object> getCurrentEq() {
+        Map<String, Object> currentEq = new HashMap<String, Object>();
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-//            for (int i = 0; i < eq.getBandCount(); i++) {
-//                currentEq.put("gain", eq.getBand(i).getGain());
-//                currentEq.put("frequency", eq.getBand(i).getCutoffFrequency());
-//            }
-//            currentEq.put("bassGain", eq.getBand(0).getGain());
-//            currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
-//            currentEq.put("midGain", eq.getBand(1).getGain());
-//            currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
-//            currentEq.put("trebleGain", eq.getBand(2).getGain());
-//            currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
-
-            // implemented as EqSettings. Changes in Mixer.getCurrentEq reflect this
-            currentEq.bassGain = eq.getBand(0).getGain();
-            currentEq.bassFrequency = eq.getBand(0).getGain();
-            currentEq.midGain = eq.getBand(1).getGain();
-            currentEq.midFrequency = eq.getBand(1).getGain();
-            currentEq.trebleGain = eq.getBand(2).getGain();
-            currentEq.trebleFrequency = eq.getBand(2).getGain();
+            currentEq.put("bassGain", eq.getBand(0).getGain());
+            currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
+            currentEq.put("midGain", eq.getBand(1).getGain());
+            currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
+            currentEq.put("trebleGain", eq.getBand(2).getGain());
+            currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
         }
         return currentEq;
     }
 
     public Map<String, Object> getElapsedTime() {
         // Is there an event I can subscribe to?
-        Map<String, Object> elapsedTime = timeToDictionary(player.getCurrentPosition());
+        Map<String, Object> elapsedTime = Utils.timeToDictionary(player.getCurrentPosition());
         return elapsedTime;
     }
 
     public Map<String, Object> getTotalTime() {
-        Map<String, Object> totalTime = timeToDictionary(player.getDuration());
+        Map<String, Object> totalTime = Utils.timeToDictionary(player.getDuration());
         return totalTime;
     }
 
-    public Map<String, String> destroy() {
-        return new HashMap<String, String>();
+    public Map<String, Object> destroy() {
+        stop();
+        player.stop();
+        player.release();
+        dp.release();
+        Map<String, Object> response = new HashMap<String, Object>();
+        response.put("listenerName", listenerName);
+        response.put("elapsedTimeEventName", elapsedTimeEventName);
+        return response;
     }
 
     @Override
@@ -208,145 +229,43 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
-    private Map<String, Object> timeToDictionary(int time) {
-        final int milliSeconds = (int) Math.floor(time);
-        final int seconds = time % 60;
-        final int minutes = (time / 60) % 60;
-        final int hours = (time / 3600);
+    //TODO: Destroying and releasing objects
+    private void initVisualizerListener() {
+        visualizer = new Visualizer(player.getAudioSessionId());
+        visualizer.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED);
+        visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
+        visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[0]);
+        measurementPeakRms = new Visualizer.MeasurementPeakRms();
+        visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
+            @Override
+            public void onWaveFormDataCapture(Visualizer vis, byte[] bytes, int i) {
+                visualizer.getMeasurementPeakRms(measurementPeakRms);
+                double measurement = (double)measurementPeakRms.mRms;
+                measurement = (measurement / 100) * (1 / currentVolume);
+                double response = measurement < -80 ? -80 : measurement;
+                JSObject data = new JSObject();
+                data.put("meterLevel", response);
+                _parent.notifyPluginListeners(listenerName, data);
 
-        Map<String, Object> timeDictionary = new HashMap<String, Object>();
-        timeDictionary.put("milliSeconds", milliSeconds);
-        timeDictionary.put("seconds", seconds);
-        timeDictionary.put("minutes", minutes);
-        timeDictionary.put("hours", hours);
-        return timeDictionary;
-    }
-    /**
-     * Get a file path from a Uri. This will get the the path for Storage Access
-     * Framework Documents, as well as the _data field for the MediaStore and
-     * other file-based ContentProviders.
-     *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @author paulburke
-     */
-    public static String getPath(final Context context, final Uri uri) {
-
-        final boolean isKitKat = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT;
-
-        // DocumentProvider
-        if (isKitKat && DocumentsContract.isDocumentUri(context, uri)) {
-            // ExternalStorageProvider
-            if (isExternalStorageDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                if ("primary".equalsIgnoreCase(type)) {
-                    return Environment.getExternalStorageDirectory() + "/" + split[1];
+                if (!elapsedTimeEventName.isEmpty()) {
+                    _parent.notifyPluginListeners(elapsedTimeEventName, Utils.buildResponseData(getElapsedTime()));
                 }
-
-                // TODO handle non-primary volumes
             }
-            // DownloadsProvider
-            else if (isDownloadsDocument(uri)) {
 
-                final String id = DocumentsContract.getDocumentId(uri);
-                final Uri contentUri = ContentUris.withAppendedId(
-                        Uri.parse("content://downloads/public_downloads"), Long.valueOf(id));
-
-                return getDataColumn(context, contentUri, null, null);
+            @Override
+            public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int i) {
+                Log.i("FFT Byte Array: ", String.valueOf(bytes[0]));
             }
-            // MediaProvider
-            else if (isMediaDocument(uri)) {
-                final String docId = DocumentsContract.getDocumentId(uri);
-                final String[] split = docId.split(":");
-                final String type = split[0];
-
-                Uri contentUri = null;
-                if ("image".equals(type)) {
-                    contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                } else if ("video".equals(type)) {
-                    contentUri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-                } else if ("audio".equals(type)) {
-                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
-                }
-
-                final String selection = "_id=?";
-                final String[] selectionArgs = new String[] {
-                        split[1]
-                };
-
-                return getDataColumn(context, contentUri, selection, selectionArgs);
-            }
-        }
-        // MediaStore (and general)
-        else if ("content".equalsIgnoreCase(uri.getScheme())) {
-            return getDataColumn(context, uri, null, null);
-        }
-        // File
-        else if ("file".equalsIgnoreCase(uri.getScheme())) {
-            return uri.getPath();
-        }
-
-        return null;
+        }, Visualizer.getMaxCaptureRate(), true, false);
+        visualizer.setEnabled(true);
     }
 
-    /**
-     * Get the value of the data column for this Uri. This is useful for
-     * MediaStore Uris, and other file-based ContentProviders.
-     *
-     * @param context The context.
-     * @param uri The Uri to query.
-     * @param selection (Optional) Filter used in the query.
-     * @param selectionArgs (Optional) Selection arguments used in the query.
-     * @return The value of the _data column, which is typically a file path.
-     */
-    public static String getDataColumn(Context context, Uri uri, String selection,
-                                       String[] selectionArgs) {
-
-        Cursor cursor = null;
-        final String column = "_data";
-        final String[] projection = {
-                column
-        };
-
-        try {
-            cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
-                    null);
-            if (cursor != null && cursor.moveToFirst()) {
-                final int column_index = cursor.getColumnIndexOrThrow(column);
-                return cursor.getString(column_index);
-            }
-        } finally {
-            if (cursor != null)
-                cursor.close();
+    private void destroyVisualizerListener() {
+        if (visualizer != null && visualizer.getEnabled()) {
+            visualizer.setDataCaptureListener(null, 0, false, false);
+            visualizer.setEnabled(false);
+            visualizer.release();
         }
-        return null;
-    }
-
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is ExternalStorageProvider.
-     */
-    public static boolean isExternalStorageDocument(Uri uri) {
-        return "com.android.externalstorage.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is DownloadsProvider.
-     */
-    public static boolean isDownloadsDocument(Uri uri) {
-        return "com.android.providers.downloads.documents".equals(uri.getAuthority());
-    }
-
-    /**
-     * @param uri The Uri to check.
-     * @return Whether the Uri authority is MediaProvider.
-     */
-    public static boolean isMediaDocument(Uri uri) {
-        return "com.android.providers.media.documents".equals(uri.getAuthority());
+        return;
     }
 }

@@ -3,22 +3,26 @@ package com.skylabs.mixer;
 import android.Manifest;
 import android.content.Context;
 import android.media.AudioManager;
+import android.media.audiofx.Visualizer;
 
 import com.getcapacitor.JSObject;
-import com.getcapacitor.NativePlugin;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @CapacitorPlugin(
         permissions={
-        @Permission(strings={Manifest.permission.WRITE_EXTERNAL_STORAGE}),
-        @Permission(strings={Manifest.permission.READ_PHONE_STATE}),
-        @Permission(strings={Manifest.permission.MODIFY_AUDIO_SETTINGS})
+            @Permission(strings={Manifest.permission.WRITE_EXTERNAL_STORAGE}),
+            @Permission(strings={Manifest.permission.READ_PHONE_STATE}),
+            @Permission(strings={Manifest.permission.MODIFY_AUDIO_SETTINGS}),
+            @Permission(strings={Manifest.permission.RECORD_AUDIO})
 })
+
 public class Mixer extends Plugin {
     public Context _context;
     private Map<String, AudioFile> audioFileList = new HashMap<String, AudioFile>();
@@ -27,9 +31,10 @@ public class Mixer extends Plugin {
     public AudioManager audioManager;
 
 
+
     @Override
     public void load() {
-        _context = getBridge().getActivity().getApplicationContext();
+        _context = this.getContext();
         audioManager = (AudioManager) _context.getSystemService(Context.AUDIO_SERVICE);
     }
 
@@ -84,11 +89,11 @@ public class Mixer extends Plugin {
         ChannelSettings channelSettings = new ChannelSettings();
 
         eqSettings.bassGain = call.getDouble("bassGain", 0.0);
-        eqSettings.bassFrequency = call.getDouble("bassFrequency", 115.0);
+        eqSettings.bassFrequency = call.getDouble("bassFrequency", 200.0);
         eqSettings.midGain = call.getDouble("midGain", 0.0);
-        eqSettings.midFrequency = call.getDouble("midFrequency", 500.0);
+        eqSettings.midFrequency = call.getDouble("midFrequency", 1499.0);
         eqSettings.trebleGain = call.getDouble("trebleGain", 0.0);
-        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 1500.0);
+        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 20000.0);
 
         channelSettings.volume = call.getDouble("volume", 1.0);
         channelSettings.channelListenerName = call.getString("channelListenerName", "");
@@ -112,12 +117,13 @@ public class Mixer extends Plugin {
         String audioId;
         String filePath;
         if ((audioId = getAudioId(call, "initAudioFile")) == null) { return; }
-        if (checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)) {
+        if (audioFileList.containsKey(audioId)) {
             call.resolve(buildBaseResponse(false, "from initAudioFile - audioId already in use"));
             return;
         }
+
         filePath = call.getString("filePath", "");
-        if (filePath == "") {
+        if (filePath.isEmpty()) {
             call.resolve(buildBaseResponse(false, "from initAudioFile - filepath not found"));
             return;
         }
@@ -126,11 +132,11 @@ public class Mixer extends Plugin {
         ChannelSettings channelSettings = new ChannelSettings();
 
         eqSettings.bassGain = call.getDouble("bassGain", 0.0);
-        eqSettings.bassFrequency = call.getDouble("bassFrequency", 115.0);
+        eqSettings.bassFrequency = call.getDouble("bassFrequency", 200.0);
         eqSettings.midGain = call.getDouble("midGain", 0.0);
-        eqSettings.midFrequency = call.getDouble("midFrequency", 500.0);
+        eqSettings.midFrequency = call.getDouble("midFrequency", 1499.0);
         eqSettings.trebleGain = call.getDouble("trebleGain", 0.0);
-        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 1500.0);
+        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 20000.0);
 
         channelSettings.volume = call.getDouble("volume", 1.0);
         channelSettings.channelListenerName = call.getString("channelListenerName", "");
@@ -146,12 +152,22 @@ public class Mixer extends Plugin {
     public void destroyAudioFile(PluginCall call) {
         String audioId;
         if ((audioId = getAudioId(call, "destroyAudioFile")) == null) { return; }
+        if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
+        AudioFile audioObject = audioFileList.get(audioId);
+        Map<String, Object> response = audioObject.destroy();
+        call.resolve(buildBaseResponse(true, "audioFile destroyed", Utils.buildResponseData(response)));
     }
 
     @PluginMethod
     public void isPlaying(PluginCall call) {
         String audioId;
         if ((audioId = getAudioId(call, "isPlaying")) == null) { return; }
+        if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
+        AudioFile audioObject = audioFileList.get(audioId);
+        boolean playingResponse = audioObject.isPlaying();
+        JSObject response = new JSObject();
+        response.put("value", playingResponse);
+        call.resolve(buildBaseResponse(true, "audioFile is playing", response));
     }
 
 
@@ -163,7 +179,7 @@ public class Mixer extends Plugin {
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
         AudioFile audioObject = audioFileList.get(audioId);
         final String result = audioObject.playOrPause();
-        JSObject data = buildResponseData(new HashMap<String, Object>() {{
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
             put("state", result);
         }});
         call.resolve(buildBaseResponse(true, "playing or pausing playback", data));
@@ -176,7 +192,7 @@ public class Mixer extends Plugin {
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
         AudioFile audioObject = audioFileList.get(audioId);
         final String result = audioObject.stop();
-        JSObject data = buildResponseData(new HashMap<String, Object>() {{
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
             put("state", result);
         }});
         call.resolve(buildBaseResponse(true, "stopping playback", data));
@@ -194,12 +210,12 @@ public class Mixer extends Plugin {
             call.resolve(buildBaseResponse(false, "in adjustVolume - volume cannot be less than zero percent"));
             return;
         }
-        if (inputType == "file") {
+        if (inputType.equals("file")) {
             if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
             AudioFile audioObject = audioFileList.get(audioId);
             audioObject.adjustVolume(volume);
         }
-        else if (inputType == " mic") {
+        else if (inputType.equals("mic")) {
             if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
             MicInput micObject = micInputList.get(audioId);
             micObject.adjustVolume(volume);
@@ -218,12 +234,12 @@ public class Mixer extends Plugin {
 
         String inputType = call.getString("inputType", "");
         final double result;
-        if (inputType == "file") {
+        if (inputType.equals("file")) {
             if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
             AudioFile audioObject = audioFileList.get(audioId);
             result = audioObject.getCurrentVolume();
         }
-        else if (inputType == "mic") {
+        else if (inputType.equals("mic")) {
             if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
             MicInput micObject = micInputList.get(audioId);
             result = micObject.getCurrentVolume();
@@ -232,7 +248,7 @@ public class Mixer extends Plugin {
             call.resolve(buildBaseResponse(false, "Could not find object at [audioId]"));
             return;
         }
-        JSObject data = buildResponseData(new HashMap<String, Object>(){{
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>(){{
             put("volume", result);
         }});
         call.resolve(buildBaseResponse(true, "Here is the current volume", data));
@@ -257,12 +273,12 @@ public class Mixer extends Plugin {
         if (freq < -1.0) {
             call.resolve(buildBaseResponse(false, "from adjustEq - frequency not specified"));
         }
-        if (inputType == "file") {
+        if (inputType.equals("file")) {
             if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
             AudioFile audioObject = audioFileList.get(audioId);
             audioObject.adjustEq(filterType, gain, freq);
         }
-        else if (inputType == "mic") {
+        else if (inputType.equals("mic")) {
             if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
             MicInput micObject = micInputList.get(audioId);
             micObject.adjustEq(filterType, gain, freq);
@@ -279,14 +295,14 @@ public class Mixer extends Plugin {
         String audioId;
         if ((audioId = getAudioId(call, "getCurrentEq")) == null) { return; }
         String inputType = call.getString("inputType");
-//        final Map<String, Object> result;
-        final EqSettings result;
-        if (inputType == "file") {
+        final Map<String, Object> result;
+//        final EqSettings result;
+        if (inputType.equals("file")) {
             if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
             AudioFile audioObject = audioFileList.get(audioId);
             result = audioObject.getCurrentEq();
         }
-        else if (inputType == "mic") {
+        else if (inputType.equals("mic")) {
             if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
             MicInput micObject = micInputList.get(audioId);
             result = micObject.getCurrentEq();
@@ -295,8 +311,8 @@ public class Mixer extends Plugin {
             call.resolve(buildBaseResponse(false, "Could not find object at [audioId]"));
             return;
         }
-//        JSObject data = buildResponseData(result);
-        call.resolve(buildBaseResponse(true, "Here is the current EQ", result));
+        JSObject data = Utils.buildResponseData(result);
+        call.resolve(buildBaseResponse(true, "Here is the current EQ", data));
     }
 
     @PluginMethod
@@ -322,7 +338,7 @@ public class Mixer extends Plugin {
         final Map<String, Object> result;
         AudioFile audioObject = audioFileList.get(audioId);
         result = audioObject.getElapsedTime();
-        JSObject data = buildResponseData(result);
+        JSObject data = Utils.buildResponseData(result);
         call.resolve(buildBaseResponse(true, "got elapsed time", data));
     }
 
@@ -334,7 +350,7 @@ public class Mixer extends Plugin {
         final Map<String, Object> result;
         AudioFile audioObject = audioFileList.get(audioId);
         result = audioObject.getTotalTime();
-        JSObject data = buildResponseData(result);
+        JSObject data = Utils.buildResponseData(result);
         call.resolve(buildBaseResponse(true, "got total time", data));
     }
 
@@ -346,11 +362,15 @@ public class Mixer extends Plugin {
         channelCount = 2.0;
         final String deviceName;
         deviceName = "stardust";
-        JSObject data = buildResponseData(new HashMap<String, Object>(){{
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>(){{
             put("channelCount", channelCount);
             put("deviceName", deviceName);
         }});
         call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
+    }
+
+    public void notifyPluginListeners(String eventName, JSObject data) {
+        notifyListeners(eventName, data);
     }
 
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message, JSObject data) {
@@ -381,14 +401,6 @@ public class Mixer extends Plugin {
         return audioId;
     }
 
-    private JSObject buildResponseData(Map<String, Object> items) {
-        JSObject response = new JSObject();
-        for (Map.Entry<String, Object> entry : items.entrySet()) {
-            response.put(entry.getKey(), entry.getValue());
-        }
-        return response;
-    }
-
     private boolean checkAudioIdExists(PluginCall call, String audioId, ListType type) {
         if(type == ListType.AUDIO_FILE) {
             if(!audioFileList.containsKey(audioId)){
@@ -404,9 +416,4 @@ public class Mixer extends Plugin {
         }
         return true;
     }
-}
-
-enum ListType {
-    AUDIO_FILE,
-    MIC_INPUT
 }

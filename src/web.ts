@@ -1,5 +1,5 @@
 import { WebPlugin } from '@capacitor/core';
-import {
+import type {
   AdjustEqRequest,
   AdjustVolumeRequest,
   BaseMixerRequest,
@@ -13,14 +13,17 @@ import {
   MixerTimeResponse,
   PlaybackStateBoolean,
   PlaybackStateResponse,
-  ResponseStatus,
   SetEventRequest,
   VolumeResponse,
   DestroyResponse,
   InitAudioSessionResponse,
-  InitAudioSessionRequest,
-  AudioSessionPortType
+  InitAudioSessionRequest
 } from './definitions';
+
+import {
+  AudioSessionPortType,
+  ResponseStatus
+} from './definitions'
 
 export class MixerWeb extends WebPlugin implements MixerPlugin {
   constructor() {
@@ -139,10 +142,3 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
   }
 
 }
-
-const Mixer = new MixerWeb();
-
-export { Mixer };
-
-import { registerWebPlugin } from '@capacitor/core';
-registerWebPlugin(Mixer);

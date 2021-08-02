@@ -1,11 +1,7 @@
-import { Plugin } from "@capacitor/core/dist/esm/definitions";
-
-declare module '@capacitor/core' {
-  interface PluginRegistry {
-    Mixer: MixerPlugin;
-  }
-}
 //#region Request Objects
+
+import { PluginListenerHandle } from "@capacitor/core";
+
 /**
  * Base class for all mixer requests
  */
@@ -279,7 +275,10 @@ export enum AudioSessionHandlerTypes {
   ROUTE_NEW_DEVICE_FOUND = "ROUTE_NEW_DEVICE_FOUND"
 }
 
-export interface MixerPlugin extends Plugin {
+export interface MixerPlugin {
+  // TODO: write a comment on cleanup day
+  addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
+
   echo(request: { value: string }): Promise<{ value: string }>;
   /**
    * Toggles playback and pause on an initialized audio file

@@ -53,12 +53,10 @@ public class MicInput {
 
     }
 
-//    public Map<String, Object> getCurrentEq() {
-//        return new HashMap<String, Object>();
-//    }
-    public EqSettings getCurrentEq() {
-        return new EqSettings();
+    public Map<String, Object> getCurrentEq() {
+        return new HashMap<String, Object>();
     }
+
 
     public void interrupt() {
 

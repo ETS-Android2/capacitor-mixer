@@ -96,7 +96,7 @@ public class Mixer: CAPPlugin {
         print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
         isAudioSessionActive = true
 
-        call.success(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
     }
     
     // MARK: dispatchQueueTest
@@ -114,7 +114,7 @@ public class Mixer: CAPPlugin {
         do {
             try audioSession.setActive(false)
             isAudioSessionActive = false
-            call.success(buildBaseResponse(wasSuccessful: true, message: "Successfully deinitialized audio session"))
+            call.resolve(buildBaseResponse(wasSuccessful: true, message: "Successfully deinitialized audio session"))
         } catch let error {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "ERROR deinitializing audio session with exception: \(error)"))
             return
@@ -145,7 +145,7 @@ public class Mixer: CAPPlugin {
     // MARK: getAudioSessionPreferredInputPortType
     @objc func getAudioSessionPreferredInputPortType(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        call.success(buildBaseResponse(wasSuccessful: true, message: "got preferred input", data: ["value": audioSession.preferredInput!.portType]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got preferred input", data: ["value": audioSession.preferredInput!.portType]))
     }
 
     // MARK: initMicInput
@@ -179,7 +179,7 @@ public class Mixer: CAPPlugin {
         micInputList[audioId] = MicInput(parent: self, audioId: audioId)
         
         micInputList[audioId]?.setupAudio(audioFilePath: NSURL(fileURLWithPath: ""), channelSettings: channelSettings)
-        call.success(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized"))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized"))
     }
     
     // MARK: destroyMicInput
@@ -188,7 +188,7 @@ public class Mixer: CAPPlugin {
         guard let audioId = getAudioId(call: call, functionName: "isPlaying") else {return}
         let response = micInputList[audioId]!.destroy()
         micInputList[audioId] = nil
-        call.success(buildBaseResponse(wasSuccessful: true, message: "Mic input \(audioId) destroyed", data: response))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "Mic input \(audioId) destroyed", data: response))
     }
     
     // MARK: initAudioFile
@@ -229,7 +229,7 @@ public class Mixer: CAPPlugin {
             let urlString = NSURL(string: scrubbedString)
             if (urlString != nil) {
                 audioFileList[audioId]!.setupAudio(audioFilePath: urlString!, channelSettings: channelSettings)
-                call.success(buildBaseResponse(wasSuccessful: true, message: "file is initialized", data: ["value": audioId]))
+                call.resolve(buildBaseResponse(wasSuccessful: true, message: "file is initialized", data: ["value": audioId]))
             }
             else {
                 call.resolve(buildBaseResponse(wasSuccessful: false, message: "in initAudioFile, urlString invalid"))
@@ -246,7 +246,7 @@ public class Mixer: CAPPlugin {
         guard let audioId = getAudioId(call: call, functionName: "isPlaying") else {return}
         let response = audioFileList[audioId]!.destroy()
         audioFileList[audioId] = nil
-        call.success(buildBaseResponse(wasSuccessful: true, message: "Audio file \(audioId) destroyed", data: response))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "Audio file \(audioId) destroyed", data: response))
     }
     
     // MARK: isPlaying
@@ -254,7 +254,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "isPlaying") else {return}
         let result = audioFileList[audioId]!.isPlaying()
-        call.success(buildBaseResponse(wasSuccessful: true, message: "audio file is playing", data: ["value": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "audio file is playing", data: ["value": result]))
     }
     
 
@@ -268,7 +268,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "play") else {return}
         let result = audioFileList[audioId]!.playOrPause()
-        call.success(buildBaseResponse(wasSuccessful: true, message: "playing or pausing playback", data: ["state": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "playing or pausing playback", data: ["state": result]))
     }
     
     // MARK: stop
@@ -276,7 +276,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "stop") else {return}
         let result = audioFileList[audioId]!.stop()
-        call.success(buildBaseResponse(wasSuccessful: true, message: "stopping playback", data: ["state": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "stopping playback", data: ["state": result]))
     }
     
     // MARK: adjustVolume
@@ -300,7 +300,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Could not find object at [audioId]"))
             return
         }
-        call.success(buildBaseResponse(wasSuccessful: true, message: "you are adjusting the volume"))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "you are adjusting the volume"))
     }
     
     // MARK: getCurrentVolume
@@ -319,7 +319,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Could not find object at [audioId]"))
             return
         }
-        call.success(buildBaseResponse(wasSuccessful: true, message: "here is the current volume", data: ["volume": result ?? -1]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "here is the current volume", data: ["volume": result ?? -1]))
     }
     
     // MARK: adjustEq
@@ -353,7 +353,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Could not find object at [audioId]"))
             return
         }
-        call.success(buildBaseResponse(wasSuccessful: true, message: "you are adjusting EQ"))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "you are adjusting EQ"))
     }
     
     // MARK: getCurrentEq
@@ -373,7 +373,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Could not find object at [audioId]"))
             return
         }
-        call.success(buildBaseResponse(wasSuccessful: true, message: "here is the current EQ", data: result))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "here is the current EQ", data: result))
     }
     
 
@@ -388,7 +388,7 @@ public class Mixer: CAPPlugin {
             return
         }
         audioFileList[audioId]?.setElapsedTimeEvent(eventName: eventName)
-        call.success(buildBaseResponse(wasSuccessful: true, message: "set elapsed time event"))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "set elapsed time event"))
     }
     
     // MARK: getElapsedTime
@@ -396,7 +396,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "getElapsedTime") else {return}
         let result = (audioFileList[audioId]?.getElapsedTime())!
-        call.success(buildBaseResponse(wasSuccessful: true, message: "got Elapsed Time", data: result))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got Elapsed Time", data: result))
     }
     
     // MARK: getTotalTime
@@ -404,7 +404,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "getTotalTime") else {return}
         let result = (audioFileList[audioId]?.getTotalTime())!
-        call.success(buildBaseResponse(wasSuccessful: true, message: "got total time", data: result))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got total time", data: result))
     }
     
     // MARK: getInputChannelCount
@@ -412,7 +412,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         let channelCount = engine.inputNode.inputFormat(forBus: 0).channelCount;
         let deviceName = audioSession.preferredInput?.portName
-        call.success(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName ?? ""]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName ?? ""]))
     }
     
     //6.14 CHANGED ERROR CHECKING TO INCLUDE MICINPUTLIST
