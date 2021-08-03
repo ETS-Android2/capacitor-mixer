@@ -33,11 +33,6 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     });
   }
 
-  async echo(options: { value: string }): Promise<{ value: string }> {
-    console.log('ECHO', options);
-    return options;
-  }
-
   async play(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('ECHO', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };

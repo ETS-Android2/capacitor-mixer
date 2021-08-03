@@ -278,8 +278,6 @@ export enum AudioSessionHandlerTypes {
 export interface MixerPlugin {
   // TODO: write a comment on cleanup day
   addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
-
-  echo(request: { value: string }): Promise<{ value: string }>;
   /**
    * Toggles playback and pause on an initialized audio file
    * @param request
