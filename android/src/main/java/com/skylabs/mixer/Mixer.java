@@ -2,8 +2,11 @@ package com.skylabs.mixer;
 
 import android.Manifest;
 import android.content.Context;
+import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.media.audiofx.Visualizer;
+import android.os.Build;
+import android.util.Log;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -12,8 +15,12 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 @CapacitorPlugin(
         permissions={
@@ -29,7 +36,7 @@ public class Mixer extends Plugin {
     private Map<String, MicInput> micInputList = new HashMap<String, MicInput>();
     private String audioSessionListenerName = "";
     public AudioManager audioManager;
-
+    public AudioDeviceInfo preferredDevice;
 
 
     @Override
@@ -40,9 +47,22 @@ public class Mixer extends Plugin {
 
     //TODO: write utility to check if file or mic input is null
 
-
     @PluginMethod
     public void initAudioSession(PluginCall call) {
+        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_ALL));
+            for (AudioDeviceInfo device : deviceInfoList) {
+                Log.i("DeviceList", String.valueOf(device));
+            }
+            Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE);
+            if (options.get().count() > 0) {
+                preferredDevice = options.get().findFirst().get();
+            } else {
+                Log.e("From initAudioSession:", "Preferred Device was not found");
+            }
+//            preferredDevice = deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE).findFirst().get();
+        }
+
         call.resolve(buildBaseResponse(true, "not implemented Android", (JSObject)null));
         return;
     }
@@ -67,7 +87,7 @@ public class Mixer extends Plugin {
         String audioId;
         int channelNumber;
         if ((audioId = getAudioId(call, "initMicInput")) == null) { return; }
-        if (checkAudioIdExists(call, audioId, ListType.MIC_INPUT)) {
+        if (micInputList.containsKey(audioId)) {
             call.resolve(buildBaseResponse(false, "from initMicInput - audioId already in use"));
             return;
         }
@@ -94,7 +114,7 @@ public class Mixer extends Plugin {
 
         micInputList.put(audioId, new MicInput(this));
         MicInput micObject = micInputList.get(audioId);
-        micObject.setupAudio(channelSettings);
+        micObject.setupAudio(audioId, channelSettings);
         call.resolve(buildBaseResponse(true, "mic was successfully initialized"));
     }
 

@@ -138,7 +138,7 @@ export interface SetEventRequest extends BaseMixerRequest {
 export interface InitAudioSessionRequest {
   inputPortType?: AudioSessionPortType,
   // outputPortType?: AudioSessionPortType,
-  ioBufferDuration?: number
+  ioBufferDuration?: number,
   audioSessionListenerName?: string
 }
 //#endregion
