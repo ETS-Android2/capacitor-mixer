@@ -1,7 +1,11 @@
 package com.skylabs.mixer;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.media.audiofx.Visualizer;
@@ -51,12 +55,14 @@ public class Mixer extends Plugin {
     private String audioSessionListenerName = "";
     public AudioManager audioManager;
     public AudioDeviceInfo preferredDevice;
+    public UsbManager usbManager;
 
 
     @Override
     public void load() {
         _context = this.getContext();
         audioManager = (AudioManager) _context.getSystemService(Context.AUDIO_SERVICE);
+        usbManager = (UsbManager) _context.getSystemService(Context.USB_SERVICE);
     }
 
     @PluginMethod
@@ -76,10 +82,18 @@ public class Mixer extends Plugin {
     public void initAudioSession(PluginCall call) {
 
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_ALL));
-            for (AudioDeviceInfo device : deviceInfoList) {
-                Log.i("DeviceList", String.valueOf(device));
+            HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
+
+            for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
+                UsbDevice usbDevice = entry.getValue();
+                boolean usbPermission = usbManager.hasPermission(usbDevice);
+                Log.i("USB Device Permission", String.valueOf(usbPermission));
+                if (!usbPermission) {
+                    PendingIntent permissionIntent = PendingIntent.getBroadcast(_context, 0, new Intent("com.android.mixer.USB_PERMISSION"), 0);
+                    usbManager.requestPermission(usbDevice, permissionIntent);
+                }
             }
+            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_ALL));
             Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE);
             if (options.get().count() > 0) {
                 preferredDevice = options.get().findFirst().get();
@@ -397,14 +411,20 @@ public class Mixer extends Plugin {
         //TODO: implement channel count response
         //TODO: implement deviceName response
         final double channelCount;
-        channelCount = 2.0;
-        final String deviceName;
-        deviceName = "stardust";
-        JSObject data = Utils.buildResponseData(new HashMap<String, Object>(){{
-            put("channelCount", channelCount);
-            put("deviceName", deviceName);
-        }});
-        call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            int[] testChannel = preferredDevice.getChannelCounts();
+            for (int i = 0; i < testChannel.length; i++) {
+                Log.i("channel Count: " + i + " ", String.valueOf(testChannel[i]));
+            }
+            channelCount = (double) preferredDevice.getChannelCounts()[1];
+            final String deviceName;
+            deviceName = preferredDevice.getProductName().toString().trim();
+            JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
+                put("channelCount", channelCount);
+                put("deviceName", deviceName);
+            }});
+            call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
+        }
     }
 
     // TODO: implement permissions for audio files and storage

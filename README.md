@@ -1,7 +1,16 @@
 # Mixer Plugin by Skylabs Technology
 
-## Permissions
-### Android
+## Android
+### Usage
+Minimum target deployment: 28
+
+to set this value you can add this to your ./android/variables.gradle
+```
+ext {
+    minSdkVersion = 28
+}
+```
+### Permissions
 ```
 <intent-filter>
     <action android:name="android.intent.action.VIEW" />
