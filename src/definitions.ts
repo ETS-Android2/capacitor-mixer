@@ -276,6 +276,10 @@ export enum AudioSessionHandlerTypes {
 }
 
 export interface MixerPlugin {
+
+  // TODO: write a comment on cleanup day
+  requestMixerPermissions(): Promise<BaseResponse<null>>;
+
   // TODO: write a comment on cleanup day
   addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
   /**

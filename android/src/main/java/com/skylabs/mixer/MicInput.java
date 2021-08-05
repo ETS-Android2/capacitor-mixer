@@ -1,5 +1,7 @@
 package com.skylabs.mixer;
 
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -17,98 +19,41 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class MicInput {
     Mixer _parent;
-    private AudioRecord recorder;
     private DynamicsProcessing.Eq eq;
     private DynamicsProcessing dp;
-    private byte[] audioData;
-    private boolean recording = false;
-    private String listenerName = "";
-    private AudioTrack audioTrack;
     private double currentVolume;
-    private String audioFileName = "";
-    private File file;
-    private File path;
+    private String listenerName = "";
+
+    private static final String APP_TAG = "Microphone";
+    private static final int mSampleRate = 44100;
+    private static final int mFormat = AudioFormat.ENCODING_PCM_16BIT;
+
+    private AudioTrack mAudioOutput;
+    private AudioRecord mAudioInput;
+    private int mInBufferSize;
+    public int mOutBufferSize;
+    private static boolean mActive = false;
 
     public MicInput(Mixer parent) {
         _parent = parent;
     }
 
     public void setupAudio(String audioId, ChannelSettings channelSettings) {
-        audioFileName = "temp_" + audioId + ".mp3";
-        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC,
-                AudioFormat.SAMPLE_RATE_UNSPECIFIED,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_FLOAT, 1024);
-        audioData = new byte[1024];
-        recording = true;
+        mInBufferSize  = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_OUT_MONO , mFormat);
+        mOutBufferSize = AudioTrack.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat);
+        mAudioInput = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat, mInBufferSize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            recorder.setPreferredDevice(_parent.preferredDevice);
+            mAudioInput.setPreferredDevice(_parent.preferredDevice);
         }
+        mAudioOutput = new AudioTrack(AudioManager.STREAM_MUSIC, mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat, mOutBufferSize, AudioTrack.MODE_STREAM);
         setupEq(channelSettings);
-    }
-
-    private void startRecording() {
-        // TODO: create a getFileName GUID
-        path = _parent._context.getFilesDir();
-        file = new File(path, audioFileName);
-        OutputStream os = null;
-        try {
-            os = new FileOutputStream(file);
-        } catch(FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        int read = 0;
-        while (recording) {
-            read = recorder.read(audioData,0,1024);
-            if(AudioRecord.ERROR_INVALID_OPERATION != read){
-                try {
-                    os.write(audioData);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-        try {
-            os.close();
-        } catch (IOException io) {
-            io.printStackTrace();
-        }
-    }
-
-    private void playRecording(ChannelSettings channelSettings) {
-        // TODO: create a getFileName GUID
-        byte[] audioData = null;
-        try {
-            InputStream inputStream = new FileInputStream(file);
-//            int minBufferSize = AudioTrack.getMinBufferSize(AudioFormat.SAMPLE_RATE_UNSPECIFIED, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
-//            audioData = new byte[minBufferSize];
-//            audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
-//                                       AudioFormat.SAMPLE_RATE_UNSPECIFIED,
-//                                       AudioFormat.CHANNEL_OUT_MONO,
-//                                       AudioFormat.ENCODING_PCM_FLOAT,
-//                                       minBufferSize,
-//                                       AudioTrack.MODE_STREAM);
-            audioTrack.setVolume((float) channelSettings.volume);
-            currentVolume = channelSettings.volume;
-            audioTrack.play();
-            
-            int i=0;
-            while((i = inputStream.read(audioData)) != -1) {
-                audioTrack.write(audioData,0,i);
-            }
-
-        } catch(FileNotFoundException fe) {
-            Log.e("playRecording exception","File not found");
-        } catch(IOException io) {
-            Log.e("playRecording exception","IO Exception");
-        }
     }
 
     private void setupEq(ChannelSettings channelSettings) {
@@ -120,7 +65,6 @@ public class MicInput {
             eq.setBand(0, bassEq);
             eq.setBand(1, midEq);
             eq.setBand(2, trebleEq);
-            Log.i("SetupEq, audioSessionId", String.valueOf(recorder.getAudioSessionId()));
             DynamicsProcessing.Config config = new DynamicsProcessing.Config.Builder(
                     DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
                     1,
@@ -129,32 +73,17 @@ public class MicInput {
                     true, 3,
                     false
             ).setPreferredFrameDuration(10).build();
-            configureEngine(channelSettings, config);
+            dp = new DynamicsProcessing(0, mAudioOutput.getAudioSessionId(), config);
+            dp.setPostEqAllChannelsTo(eq);
+            configureEngine(channelSettings);
         }
     }
 
-    private void configureEngine(ChannelSettings channelSettings, DynamicsProcessing.Config config) {
+    private void configureEngine(ChannelSettings channelSettings) {
         if (!channelSettings.channelListenerName.isEmpty()) {
             listenerName = channelSettings.channelListenerName;
         }
-        int minBufferSize = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_FLOAT);
-        audioData = new byte[minBufferSize];
-        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
-                44100,
-                AudioFormat.CHANNEL_OUT_MONO,
-                AudioFormat.ENCODING_PCM_FLOAT,
-                minBufferSize,
-                AudioTrack.MODE_STREAM);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            CompletableFuture.runAsync(() -> {
-                    startRecording();
-                    playRecording(channelSettings);
-            });
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            dp = new DynamicsProcessing(0, audioTrack.getAudioSessionId(), config);
-            dp.setPostEqAllChannelsTo(eq);
-        }
+        record();
     }
 
     public void handleMetering() {
@@ -178,8 +107,8 @@ public class MicInput {
     }
 
     public void adjustVolume(double volume) {
-        audioTrack.setVolume((float)volume);
         currentVolume = volume;
+        mAudioOutput.setVolume((float)volume);
     }
 
     public double getCurrentVolume() {
@@ -204,6 +133,61 @@ public class MicInput {
     }
 
     public void destroy() {
+
+    }
+
+    public void record() {
+        Thread t = new Thread() {
+            public void run() {
+
+                Log.d(APP_TAG, "Entered record loop");
+
+                recordLoop();
+
+                Log.d(APP_TAG, "Record loop finished");
+            }
+
+            private void recordLoop() {
+                if ( mAudioOutput.getState() != AudioTrack.STATE_INITIALIZED || mAudioInput.getState() != AudioTrack.STATE_INITIALIZED) {
+                    Log.d(APP_TAG, "Can't start. Race condition?");
+                }
+                else {
+
+                    try {
+
+                        try { mAudioOutput.play(); }          catch (Exception e) { Log.e(APP_TAG, "Failed to start playback"); return; }
+                        try { mAudioInput.startRecording(); } catch (Exception e) { Log.e(APP_TAG, "Failed to start recording"); mAudioOutput.stop(); return; }
+
+                        try {
+
+                            ByteBuffer bytes = ByteBuffer.allocateDirect(mInBufferSize);
+                            int o = 0;
+                            byte b[] = new byte[mInBufferSize];
+                            while(mActive) {
+                                o = mAudioInput.read(bytes, mInBufferSize);
+                                bytes.get(b);
+                                bytes.rewind();
+                                mAudioOutput.write(b, 0, o);
+                            }
+
+                            Log.d(APP_TAG, "Finished recording");
+                        }
+                        catch (Exception e) {
+                            Log.d(APP_TAG, "Error while recording, aborting.");
+                        }
+
+                        try { mAudioOutput.stop(); } catch (Exception e) { Log.e(APP_TAG, "Can't stop playback"); mAudioInput.stop(); return; }
+                        try { mAudioInput.stop();  } catch (Exception e) { Log.e(APP_TAG, "Can't stop recording"); return; }
+                    }
+                    catch (Exception e) {
+                        Log.d(APP_TAG, "Error somewhere in record loop.");
+                    }
+                }
+                try {
+                } catch (IllegalArgumentException e) { Log.e(APP_TAG, "Receiver wasn't registered: " + e.toString()); }
+            }
+        };
+        t.start();
 
     }
 

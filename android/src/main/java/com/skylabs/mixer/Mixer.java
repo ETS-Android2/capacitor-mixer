@@ -9,11 +9,13 @@ import android.os.Build;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
+import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -23,12 +25,24 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @CapacitorPlugin(
-        permissions={
-            @Permission(strings={Manifest.permission.WRITE_EXTERNAL_STORAGE}),
-            @Permission(strings={Manifest.permission.READ_PHONE_STATE}),
-            @Permission(strings={Manifest.permission.MODIFY_AUDIO_SETTINGS}),
-            @Permission(strings={Manifest.permission.RECORD_AUDIO})
-})
+    permissions={
+        @Permission(
+            alias="storage",
+            strings={
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            }
+        ),
+        @Permission(
+            alias = "audio",
+            strings = {
+                Manifest.permission.RECORD_AUDIO,
+                Manifest.permission.ACCESS_MEDIA_LOCATION,
+                Manifest.permission.READ_PHONE_STATE
+            }
+        )
+    }
+)
 
 public class Mixer extends Plugin {
     public Context _context;
@@ -45,10 +59,22 @@ public class Mixer extends Plugin {
         audioManager = (AudioManager) _context.getSystemService(Context.AUDIO_SERVICE);
     }
 
+    @PluginMethod
+    public void requestMixerPermissions(PluginCall call) {
+        if (getPermissionState("storage") != PermissionState.GRANTED) {
+            requestPermissionForAlias("storage", call, "storagePermissionCallback");
+        }
+        if (getPermissionState("audio") != PermissionState.GRANTED) {
+            requestPermissionForAlias("audio", call, "audioPermissionCallback");
+        }
+        call.resolve(buildBaseResponse(true, "All required permissions granted.", (JSObject)null));
+    }
+
     //TODO: write utility to check if file or mic input is null
 
     @PluginMethod
     public void initAudioSession(PluginCall call) {
+
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_ALL));
             for (AudioDeviceInfo device : deviceInfoList) {
@@ -380,6 +406,25 @@ public class Mixer extends Plugin {
         }});
         call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
     }
+
+    // TODO: implement permissions for audio files and storage
+    @PermissionCallback
+    private void storagePermissionCallback(PluginCall call) {
+        if (getPermissionState("storage") == PermissionState.GRANTED) {
+            return;
+        } else {
+            call.resolve(buildBaseResponse(false, "storage permissions needed from user"));
+        }
+    }
+    @PermissionCallback
+    private void audioPermissionCallback(PluginCall call) {
+        if (getPermissionState("audio") == PermissionState.GRANTED) {
+            return;
+        } else {
+            call.resolve(buildBaseResponse(false, "audio permissions needed from user"));
+        }
+    }
+
 
     public void notifyPluginListeners(String eventName, JSObject data) {
         notifyListeners(eventName, data);

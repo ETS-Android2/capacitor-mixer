@@ -1,4 +1,28 @@
 # Mixer Plugin by Skylabs Technology
+
+## Permissions
+### Android
+```
+<intent-filter>
+    <action android:name="android.intent.action.VIEW" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <category android:name="android.intent.category.BROWSABLE" />
+    <data android:scheme="@string/custom_url_scheme" />
+</intent-filter>
+<intent-filter>
+    <action android:name="android.intent.action.OPEN_DOCUMENT" />
+    <category android:name="android.intent.category.DEFAULT" />
+    <data android:scheme="io.ionic.starter" />
+    <data android:mimeType="audio/*" />
+</intent-filter>
+```
+```
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission>
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
+<uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
+<uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"></uses-permission>
+<uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
+```
 <docgen-index>
 
 * [Methods](#methods)

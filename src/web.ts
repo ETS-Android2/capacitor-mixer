@@ -33,6 +33,11 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     });
   }
 
+  async requestMixerPermissions(): Promise<BaseResponse<null>> {
+    console.log('request mixer permission');
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+  }
+
   async play(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('ECHO', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };
