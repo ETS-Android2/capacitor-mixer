@@ -38,8 +38,8 @@ import java.util.stream.Stream;
             }
         ),
         @Permission(
-            alias = "audio",
-            strings = {
+            alias="audio",
+            strings={
                 Manifest.permission.RECORD_AUDIO,
                 Manifest.permission.ACCESS_MEDIA_LOCATION,
                 Manifest.permission.READ_PHONE_STATE
@@ -93,7 +93,7 @@ public class Mixer extends Plugin {
                     usbManager.requestPermission(usbDevice, permissionIntent);
                 }
             }
-            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_ALL));
+            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
             Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE);
             if (options.get().count() > 0) {
                 preferredDevice = options.get().findFirst().get();
@@ -416,7 +416,7 @@ public class Mixer extends Plugin {
             for (int i = 0; i < testChannel.length; i++) {
                 Log.i("channel Count: " + i + " ", String.valueOf(testChannel[i]));
             }
-            channelCount = (double) preferredDevice.getChannelCounts()[1];
+            channelCount = (double) preferredDevice.getChannelCounts()[0];
             final String deviceName;
             deviceName = preferredDevice.getProductName().toString().trim();
             JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
@@ -430,18 +430,29 @@ public class Mixer extends Plugin {
     // TODO: implement permissions for audio files and storage
     @PermissionCallback
     private void storagePermissionCallback(PluginCall call) {
-        if (getPermissionState("storage") == PermissionState.GRANTED) {
-            return;
-        } else {
-            call.resolve(buildBaseResponse(false, "storage permissions needed from user"));
+        try {
+            if (getPermissionState("storage") == PermissionState.GRANTED) {
+
+            } else {
+                call.resolve(buildBaseResponse(false, "storage permissions needed from user"));
+            }
         }
+        catch (Exception e){
+            call.resolve(buildBaseResponse(false, "storage permissions failed with exception: " +e.getMessage()));
+        }
+
     }
     @PermissionCallback
     private void audioPermissionCallback(PluginCall call) {
-        if (getPermissionState("audio") == PermissionState.GRANTED) {
-            return;
-        } else {
-            call.resolve(buildBaseResponse(false, "audio permissions needed from user"));
+        try {
+            if (getPermissionState("audio") == PermissionState.GRANTED) {
+
+            } else {
+                call.resolve(buildBaseResponse(false, "audio permissions needed from user"));
+            }
+        }
+        catch (Exception e){
+            call.resolve(buildBaseResponse(false, "audio permissions failed with exception: " +e.getMessage()));
         }
     }
 

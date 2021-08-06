@@ -51,7 +51,13 @@ public class MicInput {
     public void setupAudio(String audioId, ChannelSettings channelSettings) {
         mInBufferSize  = AudioRecord.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_IN_MONO , mFormat);
         mOutBufferSize = AudioTrack.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat);
-        mAudioInput = new AudioRecord(MediaRecorder.AudioSource.MIC, mSampleRate, AudioFormat.CHANNEL_IN_MONO, mFormat, mInBufferSize);
+        Log.i("mInBufferSize: ", String.valueOf(mInBufferSize));
+        Log.i("mOutBufferSize: ", String.valueOf(mOutBufferSize));
+        mAudioInput = new AudioRecord(MediaRecorder.AudioSource.VOICE_PERFORMANCE,
+                                      mSampleRate,
+                                      AudioFormat.CHANNEL_IN_MONO,
+                                      mFormat,
+                                      mInBufferSize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             mAudioInput.setPreferredDevice(_parent.preferredDevice);
         }
@@ -60,10 +66,20 @@ public class MicInput {
         } catch (IOException e) {
             e.printStackTrace();
         }
-//        mAudioOutput = new AudioTrack(AudioManager.STREAM_MUSIC, mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat, mOutBufferSize, AudioTrack.MODE_STREAM);
-        AudioAttributes audioAttributes = new AudioAttributes.Builder().setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).setLegacyStreamType(AudioManager.STREAM_MUSIC).build();
-        AudioFormat audioFormat = new AudioFormat.Builder().setEncoding(AudioFormat.ENCODING_PCM_16BIT).build();
-        mAudioOutput = new AudioTrack(audioAttributes, audioFormat, mOutBufferSize, AudioTrack.MODE_STREAM, _parent.audioManager.generateAudioSessionId());
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                                                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                                                             .setLegacyStreamType(AudioManager.STREAM_VOICE_CALL)
+                                                             .build();
+        AudioFormat audioFormat = new AudioFormat.Builder()
+                                                 .setEncoding(mFormat)
+                                                 .build();
+//        AudioAttributes audioAttributes = new AudioAttributes.Builder().build();
+//        AudioFormat audioFormat = new AudioFormat.Builder().build();
+        mAudioOutput = new AudioTrack(audioAttributes,
+                                      audioFormat,
+                                      mOutBufferSize,
+                                      AudioTrack.MODE_STREAM,
+                                      _parent.audioManager.generateAudioSessionId());
         List<MicrophoneInfo> mics = null;
         try {
             mics = mAudioInput.getActiveMicrophones();
@@ -101,6 +117,8 @@ public class MicInput {
         if (!channelSettings.channelListenerName.isEmpty()) {
             listenerName = channelSettings.channelListenerName;
         }
+        currentVolume = channelSettings.volume;
+        mAudioOutput.setVolume((float)channelSettings.volume);
         record();
     }
 
@@ -170,14 +188,11 @@ public class MicInput {
                     Log.d(APP_TAG, "Can't start. Race condition?");
                 }
                 else {
-
                     try {
-
-                        try { mAudioOutput.play(); }          catch (Exception e) { Log.e(APP_TAG, "Failed to start playback"); return; }
-                        try { mAudioInput.startRecording(); } catch (Exception e) { Log.e(APP_TAG, "Failed to start recording"); mAudioOutput.stop(); return; }
+                        try { mAudioOutput.play(); } catch (Exception e) { Log.e(APP_TAG, "Failed to start playback"); return; }
+                        try { mAudioInput.startRecording(); } catch (Exception e) { Log.e(APP_TAG,"Failed to start recording"); mAudioOutput.stop(); return; }
 
                         try {
-
                             ByteBuffer bytes = ByteBuffer.allocateDirect(mInBufferSize);
                             int o = 0;
                             byte b[] = new byte[mInBufferSize];
@@ -187,13 +202,11 @@ public class MicInput {
                                 bytes.rewind();
                                 mAudioOutput.write(b, 0, o);
                             }
-
                             Log.d(APP_TAG, "Finished recording");
                         }
                         catch (Exception e) {
                             Log.d(APP_TAG, "Error while recording, aborting.");
                         }
-
                         try { mAudioOutput.stop(); } catch (Exception e) { Log.e(APP_TAG, "Can't stop playback"); mAudioInput.stop(); return; }
                         try { mAudioInput.stop();  } catch (Exception e) { Log.e(APP_TAG, "Can't stop recording"); return; }
                     }
@@ -201,8 +214,6 @@ public class MicInput {
                         Log.d(APP_TAG, "Error somewhere in record loop.");
                     }
                 }
-                try {
-                } catch (IllegalArgumentException e) { Log.e(APP_TAG, "Receiver wasn't registered: " + e.toString()); }
             }
         };
         t.start();

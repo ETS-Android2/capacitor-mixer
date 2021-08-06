@@ -34,6 +34,11 @@ public class Mixer: CAPPlugin {
             print("Problem initializing audio session")
         }
     }
+
+    @objc func requestMixerPermissions(_ call: CAPPluginCall) {
+        call.resolve(buildBaseResponse(wasSuccessful: false, message: "not implemented yet"))
+    }
+
     // MARK: initAudioSession
     @objc func initAudioSession(_ call: CAPPluginCall) {
         if (isAudioSessionActive == true) {
