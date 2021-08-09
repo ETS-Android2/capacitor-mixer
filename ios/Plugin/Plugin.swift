@@ -36,6 +36,7 @@ public class Mixer: CAPPlugin {
     }
 
     @objc func requestMixerPermissions(_ call: CAPPluginCall) {
+        requestPermissions();
         call.resolve(buildBaseResponse(wasSuccessful: false, message: "not implemented yet"))
     }
 

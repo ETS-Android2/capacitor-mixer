@@ -10,9 +10,14 @@ import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.MicrophoneInfo;
+import android.media.audiofx.AcousticEchoCanceler;
 import android.media.audiofx.DynamicsProcessing;
+import android.media.audiofx.LoudnessEnhancer;
+import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.util.Log;
+
+import com.getcapacitor.JSObject;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,44 +58,68 @@ public class MicInput {
         mOutBufferSize = AudioTrack.getMinBufferSize(mSampleRate, AudioFormat.CHANNEL_OUT_MONO, mFormat);
         Log.i("mInBufferSize: ", String.valueOf(mInBufferSize));
         Log.i("mOutBufferSize: ", String.valueOf(mOutBufferSize));
-        mAudioInput = new AudioRecord(MediaRecorder.AudioSource.VOICE_PERFORMANCE,
-                                      mSampleRate,
-                                      AudioFormat.CHANNEL_IN_MONO,
-                                      mFormat,
-                                      mInBufferSize);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mAudioInput.setPreferredDevice(_parent.preferredDevice);
-        }
-        try {
-            mAudioInput.getActiveMicrophones();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        mAudioInput = new AudioRecord(MediaRecorder.AudioSource.MIC,
+//                                      mSampleRate,
+//                                      AudioFormat.CHANNEL_IN_MONO,
+//                                      mFormat,
+//                                      (mInBufferSize));
+
+//        try {
+//            mAudioInput.getActiveMicrophones();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        AudioFormat inAudioFormat = new AudioFormat.Builder()
+                .setSampleRate(mSampleRate)
+                .setEncoding(mFormat)
+                .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                .build();
+        mAudioInput = new AudioRecord.Builder()
+                .setAudioFormat(inAudioFormat)
+                .setAudioSource(MediaRecorder.AudioSource.MIC)
+                .setBufferSizeInBytes(mInBufferSize)
+                .build();
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
-                                                             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
-                                                             .setLegacyStreamType(AudioManager.STREAM_VOICE_CALL)
+                                                             .setUsage(AudioAttributes.USAGE_MEDIA)
+                                                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                                                             .setLegacyStreamType(AudioManager.STREAM_MUSIC)
+                                                             .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
                                                              .build();
-        AudioFormat audioFormat = new AudioFormat.Builder()
+        AudioFormat outAudioFormat = new AudioFormat.Builder()
+                                                 .setSampleRate(mSampleRate)
                                                  .setEncoding(mFormat)
+                                                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                                                  .build();
+
+        mAudioInput.setPreferredDevice(_parent.preferredDevice);
 //        AudioAttributes audioAttributes = new AudioAttributes.Builder().build();
 //        AudioFormat audioFormat = new AudioFormat.Builder().build();
-        mAudioOutput = new AudioTrack(audioAttributes,
-                                      audioFormat,
-                                      mOutBufferSize,
-                                      AudioTrack.MODE_STREAM,
-                                      _parent.audioManager.generateAudioSessionId());
-        List<MicrophoneInfo> mics = null;
-        try {
-            mics = mAudioInput.getActiveMicrophones();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        mAudioOutput = new AudioTrack(audioAttributes,
+//                                      audioFormat,
+//                                      (mOutBufferSize),
+//                                      AudioTrack.MODE_STREAM,
+//                                      _parent.audioManager.generateAudioSessionId());
+        mAudioOutput = new AudioTrack.Builder()
+                                     .setAudioAttributes(audioAttributes)
+                                     .setAudioFormat(outAudioFormat)
+                                     .setBufferSizeInBytes(mOutBufferSize)
+                                     .setTransferMode(AudioTrack.MODE_STREAM)
+                                     //.setEncapsulationMode(AudioTrack.ENCAPSULATION_MODE_ELEMENTARY_STREAM)
+                                     .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
+                                     .setSessionId(_parent.audioManager.generateAudioSessionId())
+                                     .build();
+//        List<MicrophoneInfo> mics = null;
+//        try {
+//            mics = mAudioInput.getActiveMicrophones();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         setupEq(channelSettings);
     }
 
     private void setupEq(ChannelSettings channelSettings) {
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             DynamicsProcessing.EqBand bassEq = new DynamicsProcessing.EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
             DynamicsProcessing.EqBand midEq = new DynamicsProcessing.EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
@@ -109,6 +138,7 @@ public class MicInput {
             ).setPreferredFrameDuration(10).build();
             dp = new DynamicsProcessing(0, mAudioOutput.getAudioSessionId(), config);
             dp.setPostEqAllChannelsTo(eq);
+
             configureEngine(channelSettings);
         }
     }
@@ -119,6 +149,8 @@ public class MicInput {
         }
         currentVolume = channelSettings.volume;
         mAudioOutput.setVolume((float)channelSettings.volume);
+        mAudioOutput.setPlaybackRate(mSampleRate);
+        dp.setEnabled(true);
         record();
     }
 
@@ -193,11 +225,12 @@ public class MicInput {
                         try { mAudioInput.startRecording(); } catch (Exception e) { Log.e(APP_TAG,"Failed to start recording"); mAudioOutput.stop(); return; }
 
                         try {
+
                             ByteBuffer bytes = ByteBuffer.allocateDirect(mInBufferSize);
                             int o = 0;
                             byte b[] = new byte[mInBufferSize];
                             while(mActive) {
-                                o = mAudioInput.read(bytes, mInBufferSize);
+                                o = mAudioInput.read(bytes, (mInBufferSize));
                                 bytes.get(b);
                                 bytes.rewind();
                                 mAudioOutput.write(b, 0, o);
