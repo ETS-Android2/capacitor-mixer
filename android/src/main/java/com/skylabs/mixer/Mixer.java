@@ -5,11 +5,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
+import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
+import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.audiofx.Visualizer;
-import android.os.Build;
+import android.provider.MediaStore;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -22,10 +24,12 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @CapacitorPlugin(
@@ -41,7 +45,7 @@ import java.util.stream.Stream;
             alias="audio",
             strings={
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.ACCESS_MEDIA_LOCATION,
+//                Manifest.permission.ACCESS_MEDIA_LOCATION,
                 Manifest.permission.READ_PHONE_STATE
             }
         )
@@ -54,7 +58,13 @@ public class Mixer extends Plugin {
     private Map<String, MicInput> micInputList = new HashMap<String, MicInput>();
     private String audioSessionListenerName = "";
     public AudioManager audioManager;
-    public AudioDeviceInfo preferredDevice;
+    public AudioDeviceInfo preferredInputDevice;
+    public Integer foundChannelMask = AudioFormat.CHANNEL_OUT_DEFAULT;
+    public Integer foundChannelIndexMask;
+    public Integer foundChannelCount = 1;
+    public String inputPortType;
+    public double ioBufferDuration;
+    public AudioDeviceInfo preferredOutputDevice;
     public UsbManager usbManager;
 
 
@@ -65,45 +75,59 @@ public class Mixer extends Plugin {
         usbManager = (UsbManager) _context.getSystemService(Context.USB_SERVICE);
     }
 
-    @PluginMethod
-    public void requestMixerPermissions(PluginCall call) {
-        if (getPermissionState("storage") != PermissionState.GRANTED) {
-            requestPermissionForAlias("storage", call, "storagePermissionCallback");
-        }
-        if (getPermissionState("audio") != PermissionState.GRANTED) {
-            requestPermissionForAlias("audio", call, "audioPermissionCallback");
-        }
-        call.resolve(buildBaseResponse(true, "All required permissions granted.", (JSObject)null));
-    }
-
     //TODO: write utility to check if file or mic input is null
 
     @PluginMethod
     public void initAudioSession(PluginCall call) {
 
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
+        audioSessionListenerName = call.getString("audioSessionListenerName", "");
+        inputPortType = call.getString("inputPortType", "");
+        ioBufferDuration = call.getDouble("ioBufferDuration", -1.0);
 
-            for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
-                UsbDevice usbDevice = entry.getValue();
-                boolean usbPermission = usbManager.hasPermission(usbDevice);
-                Log.i("USB Device Permission", String.valueOf(usbPermission));
-                if (!usbPermission) {
-                    PendingIntent permissionIntent = PendingIntent.getBroadcast(_context, 0, new Intent("com.android.mixer.USB_PERMISSION"), 0);
-                    usbManager.requestPermission(usbDevice, permissionIntent);
-                }
+        int convertedInputPortType = getSelectedAudioInterface(inputPortType);
+
+        // TODO: move into its own method to handle usb stuffs
+        HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
+        for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
+            UsbDevice usbDevice = entry.getValue();
+            boolean usbPermission = usbManager.hasPermission(usbDevice);
+            int interfaceCount = usbDevice.getInterfaceCount();
+            for (int x = 0; x < interfaceCount; x++){
+                UsbInterface usbInterface = usbDevice.getInterface(x);
+                Log.i("UsbInterface", usbInterface.toString());
             }
-            List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
-            Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE);
-            if (options.get().count() > 0) {
-                preferredDevice = options.get().findFirst().get();
-            } else {
-                Log.e("From initAudioSession:", "Preferred Device was not found");
+            Log.i("USB Device Permission", String.valueOf(usbPermission));
+            if (!usbPermission) {
+                PendingIntent permissionIntent = PendingIntent.getBroadcast(_context, 0, new Intent("com.android.mixer.USB_PERMISSION"), 0);
+                usbManager.requestPermission(usbDevice, permissionIntent);
             }
-//            preferredDevice = deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == AudioDeviceInfo.TYPE_USB_DEVICE).findFirst().get();
+        }
+        // TODO: move into its own method to handle found devices
+        List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
+        Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == convertedInputPortType);
+        if (options.get().count() > 0) {
+            preferredInputDevice = options.get().filter(item -> item.isSource()).findFirst().get();
+            preferredOutputDevice = options.get().filter(item -> item.isSink()).findFirst().get();
+        } else {
+            Log.e("From initAudioSession:", "Preferred Device was not found");
         }
 
-        call.resolve(buildBaseResponse(true, "not implemented Android", (JSObject)null));
+
+
+        String preferredInputPortName = "Default Mic";
+        String preferredInputPortType = "builtInMic";
+        if(preferredInputDevice != null) {
+            setInputDeviceValues();
+            preferredInputPortName = preferredInputDevice.getProductName().toString().trim();
+            preferredInputPortType = inputPortType;
+        }
+
+        JSObject response = new JSObject();
+        response.put("preferredInputPortName", preferredInputPortName);
+        response.put("preferredInputPortType", preferredInputPortType);
+        response.put("preferredIOBufferDuration", ioBufferDuration);
+
+        call.resolve(buildBaseResponse(true, "successfully initialized audio session", response));
         return;
     }
 
@@ -162,6 +186,10 @@ public class Mixer extends Plugin {
     public void destroyMicInput(PluginCall call) {
         String audioId;
         if ((audioId = getAudioId(call, "destroyMicInput")) == null) { return; }
+        if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
+        MicInput audioObject = micInputList.get(audioId);
+        Map<String, Object> response = audioObject.destroy();
+        call.resolve(buildBaseResponse(true, "mic input destroyed", Utils.buildResponseData(response)));
     }
 
     @PluginMethod
@@ -410,21 +438,24 @@ public class Mixer extends Plugin {
     public void getInputChannelCount(PluginCall call) {
         //TODO: implement channel count response
         //TODO: implement deviceName response
-        final double channelCount;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            int[] testChannel = preferredDevice.getChannelCounts();
-            for (int i = 0; i < testChannel.length; i++) {
-                Log.i("channel Count: " + i + " ", String.valueOf(testChannel[i]));
-            }
-            channelCount = (double) preferredDevice.getChannelCounts()[0];
-            final String deviceName;
-            deviceName = preferredDevice.getProductName().toString().trim();
-            JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
-                put("channelCount", channelCount);
-                put("deviceName", deviceName);
-            }});
-            call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
+
+        String deviceName = preferredInputDevice != null ? preferredInputDevice.getProductName().toString().trim() : "Default Mic";
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
+            put("channelCount", foundChannelCount);
+            put("deviceName", deviceName);
+        }});
+        call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
+    }
+
+    @PluginMethod
+    public void requestMixerPermissions(PluginCall call) {
+        if (getPermissionState("storage") != PermissionState.GRANTED) {
+            requestPermissionForAlias("storage", call, "storagePermissionCallback");
         }
+        if (getPermissionState("audio") != PermissionState.GRANTED) {
+            requestPermissionForAlias("audio", call, "audioPermissionCallback");
+        }
+        call.resolve(buildBaseResponse(true, "All required permissions granted."));
     }
 
     // TODO: implement permissions for audio files and storage
@@ -503,5 +534,75 @@ public class Mixer extends Plugin {
             }
         }
         return true;
+    }
+
+    private void setInputDeviceValues() {
+        int[] channelMasks = preferredInputDevice.getChannelMasks();
+        if(channelMasks.length > 0){
+            if(channelMasks.length == 1){
+                foundChannelMask = channelMasks[0];
+            }
+            else {
+                foundChannelMask = Arrays.stream(channelMasks).findFirst().getAsInt();
+            }
+        }
+        int[] channelIndexMasks = preferredInputDevice.getChannelIndexMasks();
+        if(channelIndexMasks.length > 0){
+            if(channelIndexMasks.length == 1){
+                foundChannelIndexMask = channelIndexMasks[0];
+            }
+            else {
+                foundChannelIndexMask = Arrays.stream(channelIndexMasks).findFirst().getAsInt();
+            }
+        }
+        foundChannelCount = Collections.max(
+                Arrays.stream(preferredInputDevice.getChannelCounts())
+                        .boxed()
+                        .collect(Collectors.toList())
+        );
+    }
+
+    private int getSelectedAudioInterface(String inputPortType) {
+//        AVB = "avb",
+//        PCI = "pci",
+//        AIRPLAY = "airplay",
+//        BLUETOOTH_LE = "bluetoothLE",
+//        BUILT_IN_RECEIVER = "builtInReceiver",
+//        BUILT_IN_SPEAKER = "builtInSpeaker",
+//        CAR_AUDIO = "carAudio",
+//        DISPLAY_PORT = "displayPort",
+//        FIREWIRE = "firewire",
+//        HEADPHONES = "headphones",
+//        HEADSET_MIC = "headsetMic",
+//        LINE_OUT = "lineOut",
+//        THUNDERBOLT = "thunderbolt",
+        if(inputPortType == "hdmi") {
+            return AudioDeviceInfo.TYPE_HDMI;
+        }
+        else if (inputPortType == "bluetoothA2DP") {
+            return AudioDeviceInfo.TYPE_BLUETOOTH_A2DP;
+        }
+        else if (inputPortType == "bluetoothHFP") {
+            return AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
+        }
+        else if (inputPortType == "builtInMic") {
+            return AudioDeviceInfo.TYPE_BUILTIN_MIC;
+        }
+        // TODO: add headsetMicUsb || headsetMicWired
+        else if (inputPortType == "headsetMic") {
+            return AudioDeviceInfo.TYPE_USB_HEADSET;
+        }
+        else if (inputPortType == "lineIn") {
+            return  AudioDeviceInfo.TYPE_LINE_ANALOG;
+        }
+        else if (inputPortType == "usbAudio") {
+            return AudioDeviceInfo.TYPE_USB_DEVICE;
+        }
+        else if (inputPortType == "virtual") {
+            return AudioDeviceInfo.TYPE_LINE_DIGITAL;
+        }
+        else {
+            return AudioDeviceInfo.TYPE_UNKNOWN;
+        }
     }
 }

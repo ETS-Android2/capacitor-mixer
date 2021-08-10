@@ -185,7 +185,7 @@ public class Mixer: CAPPlugin {
         micInputList[audioId] = MicInput(parent: self, audioId: audioId)
         
         micInputList[audioId]?.setupAudio(audioFilePath: NSURL(fileURLWithPath: ""), channelSettings: channelSettings)
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized"))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized", data: ["value": audioId]))
     }
     
     // MARK: destroyMicInput

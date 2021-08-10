@@ -1,19 +1,12 @@
 package com.skylabs.mixer;
-import android.content.ContentUris;
-import android.content.Context;
 import android.content.res.AssetFileDescriptor;
-import android.database.Cursor;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.Visualizer;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
 import android.os.ParcelFileDescriptor;
-import android.os.StrictMode;
-import android.provider.DocumentsContract;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.media.audiofx.DynamicsProcessing.Eq;
 import android.media.audiofx.DynamicsProcessing.EqBand;
@@ -22,8 +15,6 @@ import android.media.audiofx.DynamicsProcessing.EqBand;
 import com.getcapacitor.JSObject;
 
 import java.io.File;
-import java.net.URI;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,9 +27,9 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     private DynamicsProcessing dp;
     private float currentVolume;
     private Visualizer visualizer;
+    private boolean visualizerState = false;
     public String elapsedTimeEventName = "";
     public String listenerName = "";
-    public boolean visualizerState = true;
     private Visualizer.MeasurementPeakRms measurementPeakRms;
 
 
@@ -59,6 +50,8 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
             player.setAudioAttributes(new AudioAttributes.Builder()
                             .setUsage(AudioAttributes.USAGE_MEDIA)
                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .setLegacyStreamType(AudioManager.STREAM_MUSIC)
+                            .setFlags(AudioAttributes.FLAG_AUDIBILITY_ENFORCED)
                             .build()
             );
             player.setDataSource(afd.getFileDescriptor(), afd.getStartOffset(), afd.getLength());
@@ -71,25 +64,23 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     }
 
     private void setupEq(ChannelSettings channelSettings) {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            EqBand bassEq = new EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
-            EqBand midEq = new EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
-            EqBand trebleEq = new EqBand(true, (float)channelSettings.eqSettings.trebleFrequency, (float)channelSettings.eqSettings.trebleGain);
-            eq = new Eq(true, true, 3);
-            eq.setBand(0, bassEq);
-            eq.setBand(1, midEq);
-            eq.setBand(2, trebleEq);
-            DynamicsProcessing.Config config = new DynamicsProcessing.Config.Builder(
-                    DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
-                    1,
-                    false, 0,
-                    false, 0,
-                    true, 3,
-                    false
-            ).setPreferredFrameDuration(10).build();
-            dp = new DynamicsProcessing(0, player.getAudioSessionId(), config);
-            dp.setPostEqAllChannelsTo(eq);
-        }
+        EqBand bassEq = new EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
+        EqBand midEq = new EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
+        EqBand trebleEq = new EqBand(true, (float)channelSettings.eqSettings.trebleFrequency, (float)channelSettings.eqSettings.trebleGain);
+        eq = new Eq(true, true, 3);
+        eq.setBand(0, bassEq);
+        eq.setBand(1, midEq);
+        eq.setBand(2, trebleEq);
+        DynamicsProcessing.Config config = new DynamicsProcessing.Config.Builder(
+                DynamicsProcessing.VARIANT_FAVOR_FREQUENCY_RESOLUTION,
+                1,
+                false, 0,
+                false, 0,
+                true, 3,
+                false
+        ).setPreferredFrameDuration(10).build();
+        dp = new DynamicsProcessing(0, player.getAudioSessionId(), config);
+        dp.setPostEqAllChannelsTo(eq);
         configureEngine(channelSettings);
     }
 
@@ -142,48 +133,43 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     }
 
     public void adjustEq(String type, double gain, double freq) {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            if (eq.getBandCount() < 1) {
-                return;
-            }
-            if (type.equals("bass")) {
-                EqBand bassEq = eq.getBand(0);
-                bassEq.setGain((float) gain);
-                bassEq.setCutoffFrequency((float) freq);
-                eq.setBand(0, bassEq);
-                dp.setPostEqAllChannelsTo(eq);
-            }
-            else if (type.equals("mid")) {
-                EqBand midEq = eq.getBand(1);
-                midEq.setGain((float) gain);
-                midEq.setCutoffFrequency((float) freq);
-                eq.setBand(1, midEq);
-                dp.setPostEqAllChannelsTo(eq);
-            }
-            else if (type.equals("treble")) {
-                EqBand trebleEq = eq.getBand(2);
-                trebleEq.setGain((float) gain);
-                trebleEq.setCutoffFrequency((float) freq);
-                eq.setBand(2, trebleEq);
-                dp.setPostEqAllChannelsTo(eq);
-            }
-            else {
-                System.out.println("adjustEq: invalid eq type");
-            }
+        if (eq.getBandCount() < 1) {
+            return;
+        }
+        if (type.equals("bass")) {
+            EqBand bassEq = eq.getBand(0);
+            bassEq.setGain((float) gain);
+            bassEq.setCutoffFrequency((float) freq);
+            eq.setBand(0, bassEq);
+            dp.setPostEqAllChannelsTo(eq);
+        }
+        else if (type.equals("mid")) {
+            EqBand midEq = eq.getBand(1);
+            midEq.setGain((float) gain);
+            midEq.setCutoffFrequency((float) freq);
+            eq.setBand(1, midEq);
+            dp.setPostEqAllChannelsTo(eq);
+        }
+        else if (type.equals("treble")) {
+            EqBand trebleEq = eq.getBand(2);
+            trebleEq.setGain((float) gain);
+            trebleEq.setCutoffFrequency((float) freq);
+            eq.setBand(2, trebleEq);
+            dp.setPostEqAllChannelsTo(eq);
+        }
+        else {
+            System.out.println("adjustEq: invalid eq type");
         }
     }
 
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            currentEq.put("bassGain", eq.getBand(0).getGain());
-            currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
-            currentEq.put("midGain", eq.getBand(1).getGain());
-            currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
-            currentEq.put("trebleGain", eq.getBand(2).getGain());
-            currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
-        }
+        currentEq.put("bassGain", eq.getBand(0).getGain());
+        currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
+        currentEq.put("midGain", eq.getBand(1).getGain());
+        currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
+        currentEq.put("trebleGain", eq.getBand(2).getGain());
+        currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
         return currentEq;
     }
 
@@ -258,12 +244,14 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
             }
         }, Visualizer.getMaxCaptureRate(), true, false);
         visualizer.setEnabled(true);
+        visualizerState = true;
     }
 
     private void destroyVisualizerListener() {
-        if (visualizer != null && visualizer.getEnabled()) {
+        if (visualizerState) {
             visualizer.setDataCaptureListener(null, 0, false, false);
             visualizer.setEnabled(false);
+            visualizerState = false;
             visualizer.release();
         }
         return;
