@@ -146,6 +146,7 @@ public class Mixer: CAPPlugin {
         micInputList = [:]
         engine = AVAudioEngine()
         audioSession = AVAudioSession.sharedInstance()
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "Successfully restarted plugin to original state."))
     }
     
     // MARK: getAudioSessionPreferredInputPortType
@@ -160,11 +161,11 @@ public class Mixer: CAPPlugin {
         let audioId = call.getString("audioId") ?? ""
         let channelNumber = call.getInt("channelNumber") ?? -1
         if (channelNumber == -1) {
-            call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initMicInput - no channel number"))
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "no channel number"))
             return
         }
         if (micInputList[audioId] != nil) {
-            call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initMicInput - audioId already in use"))
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "audioId already in use"))
             return
         }
         let eqSettings: EqSettings = EqSettings()
@@ -217,15 +218,15 @@ public class Mixer: CAPPlugin {
         channelSettings.eqSettings = eqSettings
         
         if (filePath.isEmpty) {
-            call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initAudioFile - filePath not found"))
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "filePath not found"))
             return
         }
         if (audioId.isEmpty) {
-            call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initAudioFile - audioId not found"))
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "audioId not found"))
             return
         }
         if (audioFileList[audioId] != nil) {
-            call.resolve(buildBaseResponse(wasSuccessful: false, message: "from initAudioFile - audioId already in use"))
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "audioId already in use"))
             return
         }
         // TODO: move filePath scrubbing into AudioFile.setupAudio? <-- Human question mark, not swift question mark

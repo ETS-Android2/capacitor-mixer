@@ -21,15 +21,16 @@ import java.util.Map;
 import static com.skylabs.mixer.Utils.getPath;
 
 public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener {
-    Mixer _parent;
+    private Mixer _parent;
     private MediaPlayer player;
     private Eq eq;
     private DynamicsProcessing dp;
     private float currentVolume;
-    private Visualizer visualizer;
-    private boolean visualizerState = false;
     public String elapsedTimeEventName = "";
     public String listenerName = "";
+
+    private Visualizer visualizer;
+    private boolean visualizerState = false;
     private Visualizer.MeasurementPeakRms measurementPeakRms;
 
 
@@ -100,11 +101,15 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     public String playOrPause() {
         if (player.isPlaying()) {
             player.pause();
-            destroyVisualizerListener();
+            if(visualizerState) {
+                destroyVisualizerListener();
+            }
             return "pause";
         } else {
             player.start();
-            initVisualizerListener();
+            if(!visualizerState) {
+                initVisualizerListener();
+            }
             return "play";
         }
     }
@@ -114,7 +119,9 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
             player.pause();
         }
         player.seekTo(0);
-        destroyVisualizerListener();
+        if(visualizerState) {
+            destroyVisualizerListener();
+        }
         return "stop";
     }
 
@@ -164,12 +171,12 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
 
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
-        currentEq.put("bassGain", eq.getBand(0).getGain());
-        currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
-        currentEq.put("midGain", eq.getBand(1).getGain());
-        currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
-        currentEq.put("trebleGain", eq.getBand(2).getGain());
-        currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
+        currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
+        currentEq.put(ResponseParameters.bassFreq, eq.getBand(0).getCutoffFrequency());
+        currentEq.put(ResponseParameters.midGain, eq.getBand(1).getGain());
+        currentEq.put(ResponseParameters.midFreq, eq.getBand(1).getCutoffFrequency());
+        currentEq.put(ResponseParameters.trebleGain, eq.getBand(2).getGain());
+        currentEq.put(ResponseParameters.trebleFreq, eq.getBand(2).getCutoffFrequency());
         return currentEq;
     }
 
@@ -190,8 +197,8 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         player.release();
         dp.release();
         Map<String, Object> response = new HashMap<String, Object>();
-        response.put("listenerName", listenerName);
-        response.put("elapsedTimeEventName", elapsedTimeEventName);
+        response.put(ResponseParameters.listenerName, listenerName);
+        response.put(ResponseParameters.elapsedTimeEventName, elapsedTimeEventName);
         return response;
     }
 
@@ -225,17 +232,20 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
             @Override
             public void onWaveFormDataCapture(Visualizer vis, byte[] bytes, int i) {
-                visualizer.getMeasurementPeakRms(measurementPeakRms);
-                double measurement = (double)measurementPeakRms.mRms;
-                measurement = (measurement / 100) * (1 / currentVolume);
-                double response = measurement < -80 ? -80 : measurement;
-                JSObject data = new JSObject();
-                data.put("meterLevel", response);
-                _parent.notifyPluginListeners(listenerName, data);
+                if(visualizerState) {
+                    visualizer.getMeasurementPeakRms(measurementPeakRms);
+                    double measurement = (double)measurementPeakRms.mRms;
+                    measurement = (measurement / 100) * (1 / currentVolume);
+                    double response = measurement < -80 ? -80 : measurement;
+                    JSObject data = new JSObject();
+                    data.put(ResponseParameters.meterLevel, response);
+                    _parent.notifyPluginListeners(listenerName, data);
 
-                if (!elapsedTimeEventName.isEmpty()) {
-                    _parent.notifyPluginListeners(elapsedTimeEventName, Utils.buildResponseData(getElapsedTime()));
+                    if (!elapsedTimeEventName.isEmpty()) {
+                        _parent.notifyPluginListeners(elapsedTimeEventName, Utils.buildResponseData(getElapsedTime()));
+                    }
                 }
+
             }
 
             @Override

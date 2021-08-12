@@ -1,6 +1,7 @@
 package com.skylabs.mixer;
 
 import android.media.AudioAttributes;
+import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
@@ -11,6 +12,7 @@ import android.media.MicrophoneInfo;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.Visualizer;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -22,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MicInput {
-    Mixer _parent;
+    private Mixer _parent;
     private DynamicsProcessing.Eq eq;
     private DynamicsProcessing dp;
     private double currentVolume;
@@ -41,7 +43,10 @@ public class MicInput {
     private static boolean mActive = true;
 
     private Visualizer visualizer;
+    private boolean visualizerState = false;
     private Visualizer.MeasurementPeakRms measurementPeakRms;
+
+    private boolean isInterrupt = false;
 
     public MicInput(Mixer parent) {
         _parent = parent;
@@ -86,9 +91,6 @@ public class MicInput {
                                                  .setEncoding(mFormat)
                                                  .setChannelMask(mOutChannelFormat)
                                                  .build();
-
-        mAudioInput.setPreferredDevice(_parent.preferredInputDevice);
-//        mAudioInput.addOnRoutingChangedListener();
         mAudioOutput = new AudioTrack.Builder()
                                      .setAudioAttributes(audioAttributes)
                                      .setAudioFormat(outAudioFormat)
@@ -98,6 +100,13 @@ public class MicInput {
                                      .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                                      .setSessionId(_parent.audioManager.generateAudioSessionId())
                                      .build();
+        if(_parent.preferredInputDevice != null) {
+            mAudioInput.setPreferredDevice(_parent.preferredInputDevice);
+        }
+
+//        if(_parent.preferredOutputDevice != null) {
+//            mAudioOutput.setPreferredDevice(_parent.preferredOutputDevice);
+//        }
         setupEq(channelSettings);
     }
 
@@ -139,6 +148,7 @@ public class MicInput {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        mAudioInput.addOnRoutingChangedListener(_parent.routingListener, null);
         record();
     }
 
@@ -195,30 +205,46 @@ public class MicInput {
 
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
-        currentEq.put("bassGain", eq.getBand(0).getGain());
-        currentEq.put("bassFreq", eq.getBand(0).getCutoffFrequency());
-        currentEq.put("midGain", eq.getBand(1).getGain());
-        currentEq.put("midFreq", eq.getBand(1).getCutoffFrequency());
-        currentEq.put("trebleGain", eq.getBand(2).getGain());
-        currentEq.put("trebleFreq", eq.getBand(2).getCutoffFrequency());
+        currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
+        currentEq.put(ResponseParameters.bassFreq, eq.getBand(0).getCutoffFrequency());
+        currentEq.put(ResponseParameters.midGain, eq.getBand(1).getGain());
+        currentEq.put(ResponseParameters.midFreq, eq.getBand(1).getCutoffFrequency());
+        currentEq.put(ResponseParameters.trebleGain, eq.getBand(2).getGain());
+        currentEq.put(ResponseParameters.trebleFreq, eq.getBand(2).getCutoffFrequency());
         return currentEq;
     }
 
 
     public void interrupt() {
+        mAudioOutput.setVolume(0);
+        if(visualizerState){
+            destroyVisualizerListener();
+        }
+        JSObject response = new JSObject();
+        response.put("handlerType", "ROUTE_DEVICE_DISCONNECTED");
 
+        _parent.notifyPluginListeners(_parent.audioSessionListenerName, response);
     }
 
     public void resumeFromInterrupt() {
+        mAudioOutput.setVolume((float)currentVolume);
+        if(!visualizerState){
+            initVisualizerListener();
+        }
+        JSObject response = new JSObject();
+        response.put("handlerType", "ROUTE_DEVICE_RECONNECTED");
 
+        _parent.notifyPluginListeners(_parent.audioSessionListenerName, response);
     }
 
     public Map<String, Object> destroy() {
-        destroyVisualizerListener();
+        if(visualizerState) {
+            destroyVisualizerListener();
+        }
         mActive = false;
         Map<String, Object> response = new HashMap<String, Object>();
-        response.put("listenerName", listenerName);
-        response.put("elapsedTimeEventName", "");
+        response.put(ResponseParameters.listenerName, listenerName);
+        response.put(ResponseParameters.elapsedTimeEventName, "");
         return response;
     }
 
@@ -258,8 +284,27 @@ public class MicInput {
                         catch (Exception e) {
                             Log.d(APP_TAG, "Error while recording, aborting.");
                         }
-                        try { mAudioOutput.stop(); } catch (Exception e) { Log.e(APP_TAG, "Can't stop playback"); mAudioInput.stop(); return; }
-                        try { mAudioInput.stop();  } catch (Exception e) { Log.e(APP_TAG, "Can't stop recording"); return; }
+                        try {
+                            if(isInterrupt){
+                                mAudioOutput.pause();
+                            }
+                            else {
+                                mAudioOutput.stop();
+                            }
+
+                        } catch (Exception e) {
+                            Log.e(APP_TAG, "Can't stop playback");
+                            mAudioInput.stop();
+                            return;
+                        }
+                        try {
+                            if(!isInterrupt){
+//                                mAudioInput.stop();
+                            }
+                        } catch (Exception e) {
+                            Log.e(APP_TAG, "Can't stop recording");
+                            return;
+                        }
                     }
                     catch (Exception e) {
                         Log.d(APP_TAG, "Error somewhere in record loop.");
@@ -270,8 +315,10 @@ public class MicInput {
                 if(totalChannels == 1 ) return buffer;
 
                 byte[] newBuffer = new byte[buffer.length];
-                int totalChannelBytes = totalChannels * 2;
+
                 int offset = 2 * channelNumber;
+                int totalChannelBytes = totalChannels * 2;
+
                 for(int i = offset; i < buffer.length; i += totalChannelBytes){
                     newBuffer[i] = buffer[i];
                     newBuffer[i+1] = buffer[i+1];
@@ -300,37 +347,42 @@ public class MicInput {
     }
 
     private void initVisualizerListener() {
-        visualizer = new Visualizer(mAudioOutput.getAudioSessionId());
-        visualizer.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED);
-        visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
-        visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[0]);
-        measurementPeakRms = new Visualizer.MeasurementPeakRms();
-        visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
-            @Override
-            public void onWaveFormDataCapture(Visualizer vis, byte[] bytes, int i) {
-                visualizer.getMeasurementPeakRms(measurementPeakRms);
-                double measurement = (double)measurementPeakRms.mRms;
-                measurement = (measurement / 100) * (1 / currentVolume);
-                double response = measurement < -80 ? -80 : measurement;
-                JSObject data = new JSObject();
-                data.put("meterLevel", response);
-                _parent.notifyPluginListeners(listenerName, data);
-            }
+        if(!visualizerState){
+            visualizer = new Visualizer(mAudioOutput.getAudioSessionId());
+            visualizer.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED);
+            visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
+            visualizer.setCaptureSize(Visualizer.getCaptureSizeRange()[0]);
+            measurementPeakRms = new Visualizer.MeasurementPeakRms();
+            visualizer.setDataCaptureListener(new Visualizer.OnDataCaptureListener() {
+                @Override
+                public void onWaveFormDataCapture(Visualizer vis, byte[] bytes, int i) {
+                    if(visualizerState){
+                        visualizer.getMeasurementPeakRms(measurementPeakRms);
+                        double measurement = (double)measurementPeakRms.mRms;
+                        measurement = (measurement / 100) * (1 / currentVolume);
+                        double response = measurement < -80 ? -80 : measurement;
+                        JSObject data = new JSObject();
+                        data.put(ResponseParameters.meterLevel, response);
+                        _parent.notifyPluginListeners(listenerName, data);
+                    }
+                }
 
-            @Override
-            public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int i) {
-                // Log.i("FFT Byte Array: ", String.valueOf(bytes[0]));
-            }
-        }, Visualizer.getMaxCaptureRate(), true, false);
-        visualizer.setEnabled(true);
+                @Override
+                public void onFftDataCapture(Visualizer visualizer, byte[] bytes, int i) {
+                    // Log.i("FFT Byte Array: ", String.valueOf(bytes[0]));
+                }
+            }, Visualizer.getMaxCaptureRate(), true, false);
+            visualizer.setEnabled(true);
+            visualizerState = true;
+        }
     }
 
     private void destroyVisualizerListener() {
-        if (visualizer != null && visualizer.getEnabled()) {
+        if (visualizerState) {
             visualizer.setDataCaptureListener(null, 0, false, false);
             visualizer.setEnabled(false);
+            visualizerState = false;
             visualizer.release();
         }
-        return;
     }
 }

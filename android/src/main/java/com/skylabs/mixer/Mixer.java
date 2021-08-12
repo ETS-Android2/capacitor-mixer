@@ -11,6 +11,10 @@ import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
+import android.media.AudioRecord;
+import android.media.AudioRouting;
+import android.media.MediaRecorder;
+import android.media.MediaRouter;
 import android.provider.MediaStore;
 import android.util.Log;
 
@@ -23,6 +27,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +50,6 @@ import java.util.stream.Stream;
             alias="audio",
             strings={
                 Manifest.permission.RECORD_AUDIO,
-//                Manifest.permission.ACCESS_MEDIA_LOCATION,
                 Manifest.permission.READ_PHONE_STATE
             }
         )
@@ -54,10 +58,15 @@ import java.util.stream.Stream;
 
 public class Mixer extends Plugin {
     public Context _context;
-    private Map<String, AudioFile> audioFileList = new HashMap<String, AudioFile>();
-    private Map<String, MicInput> micInputList = new HashMap<String, MicInput>();
-    private String audioSessionListenerName = "";
     public AudioManager audioManager;
+    public UsbManager usbManager;
+
+    private final Map<String, AudioFile> audioFileList = new HashMap<>();
+    private final Map<String, MicInput> micInputList = new HashMap<>();
+    public String audioSessionListenerName = "";
+
+    private boolean isAudioSessionActive = false;
+
     public AudioDeviceInfo preferredInputDevice;
     public Integer foundChannelMask = AudioFormat.CHANNEL_OUT_DEFAULT;
     public Integer foundChannelIndexMask;
@@ -65,8 +74,22 @@ public class Mixer extends Plugin {
     public String inputPortType;
     public double ioBufferDuration;
     public AudioDeviceInfo preferredOutputDevice;
-    public UsbManager usbManager;
 
+
+    public AudioRouting.OnRoutingChangedListener routingListener = router -> {
+        AudioDeviceInfo currentRoutedDevice = router.getRoutedDevice();
+        Log.i("Routed_Device: ", "current = " + String.valueOf(currentRoutedDevice));
+        if(currentRoutedDevice == null) {
+            micInputList.forEach((audioId, audioObject) -> {
+                audioObject.interrupt();
+            });
+        }
+        if(currentRoutedDevice != null) {
+            micInputList.forEach((audioId, audioObject) -> {
+                audioObject.resumeFromInterrupt();
+            });
+        }
+    };
 
     @Override
     public void load() {
@@ -75,44 +98,18 @@ public class Mixer extends Plugin {
         usbManager = (UsbManager) _context.getSystemService(Context.USB_SERVICE);
     }
 
-    //TODO: write utility to check if file or mic input is null
-
     @PluginMethod
     public void initAudioSession(PluginCall call) {
+        audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName, "");
 
-        audioSessionListenerName = call.getString("audioSessionListenerName", "");
-        inputPortType = call.getString("inputPortType", "");
-        ioBufferDuration = call.getDouble("ioBufferDuration", -1.0);
+        inputPortType = call.getString(RequestParameters.inputPortType, "");
+        ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration, -1.0);
 
         int convertedInputPortType = getSelectedAudioInterface(inputPortType);
 
-        // TODO: move into its own method to handle usb stuffs
-        HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
-        for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
-            UsbDevice usbDevice = entry.getValue();
-            boolean usbPermission = usbManager.hasPermission(usbDevice);
-            int interfaceCount = usbDevice.getInterfaceCount();
-            for (int x = 0; x < interfaceCount; x++){
-                UsbInterface usbInterface = usbDevice.getInterface(x);
-                Log.i("UsbInterface", usbInterface.toString());
-            }
-            Log.i("USB Device Permission", String.valueOf(usbPermission));
-            if (!usbPermission) {
-                PendingIntent permissionIntent = PendingIntent.getBroadcast(_context, 0, new Intent("com.android.mixer.USB_PERMISSION"), 0);
-                usbManager.requestPermission(usbDevice, permissionIntent);
-            }
-        }
+        handleUsbPermission();
         // TODO: move into its own method to handle found devices
-        List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
-        Supplier<Stream<AudioDeviceInfo>> options = () -> deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == convertedInputPortType);
-        if (options.get().count() > 0) {
-            preferredInputDevice = options.get().filter(item -> item.isSource()).findFirst().get();
-            preferredOutputDevice = options.get().filter(item -> item.isSink()).findFirst().get();
-        } else {
-            Log.e("From initAudioSession:", "Preferred Device was not found");
-        }
-
-
+        handlePreferredDevice(convertedInputPortType);
 
         String preferredInputPortName = "Default Mic";
         String preferredInputPortType = "builtInMic";
@@ -121,69 +118,93 @@ public class Mixer extends Plugin {
             preferredInputPortName = preferredInputDevice.getProductName().toString().trim();
             preferredInputPortType = inputPortType;
         }
+        isAudioSessionActive = true;
 
         JSObject response = new JSObject();
-        response.put("preferredInputPortName", preferredInputPortName);
-        response.put("preferredInputPortType", preferredInputPortType);
-        response.put("preferredIOBufferDuration", ioBufferDuration);
+        response.put(ResponseParameters.preferredInputPortName, preferredInputPortName);
+        response.put(ResponseParameters.preferredInputPortType, preferredInputPortType);
+        response.put(ResponseParameters.preferredIOBufferDuration, ioBufferDuration);
 
         call.resolve(buildBaseResponse(true, "successfully initialized audio session", response));
-        return;
     }
 
     @PluginMethod
     public void deinitAudioSession(PluginCall call) {
-
+        if(!checkAudioSessionInit(call)) { return; }
+        preferredInputDevice = null;
+        preferredOutputDevice = null;
+        isAudioSessionActive = false;
+        call.resolve(buildBaseResponse(true, "Successfully deinitialized audio session"));
     }
 
     @PluginMethod
     public void restartPlugin(PluginCall call) {
-
+        if(!checkAudioSessionInit(call)) { return; }
+        preferredInputDevice = null;
+        preferredOutputDevice = null;
+        isAudioSessionActive = false;
+        audioFileList.forEach((audioId, audioObject) -> {
+            audioObject.destroy();
+        });
+        micInputList.forEach((audioId, audioObject) -> {
+            audioObject.destroy();
+        });
+        audioFileList.clear();
+        micInputList.clear();
+        call.resolve(buildBaseResponse(true, "Successfully restarted plugin to original state."));
     }
 
     @PluginMethod
     public void getAudioSessionPreferredInputPortType(PluginCall call) {
-
+        if(!checkAudioSessionInit(call)) { return; }
+        JSObject response = new JSObject();
+        String portType = Utils.convertAudioPortType(preferredInputDevice.getType());
+        response.put(ResponseParameters.value, portType);
+        call.resolve(buildBaseResponse(true, "Successfully got preferred input", response));
     }
 
     @PluginMethod
     public void initMicInput(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         int channelNumber;
         if ((audioId = getAudioId(call, "initMicInput")) == null) { return; }
         if (micInputList.containsKey(audioId)) {
-            call.resolve(buildBaseResponse(false, "from initMicInput - audioId already in use"));
+            call.resolve(buildBaseResponse(false, "audioId already in use"));
             return;
         }
-        channelNumber = call.getInt("channelNumber", -1);
+        channelNumber = call.getInt(RequestParameters.channelNumber, -1);
         if (channelNumber == -1) {
-            call.resolve(buildBaseResponse(false, "from initMicInput - no channel number"));
+            call.resolve(buildBaseResponse(false, "no channel number"));
             return;
         }
 
         EqSettings eqSettings = new EqSettings();
         ChannelSettings channelSettings = new ChannelSettings();
 
-        eqSettings.bassGain = call.getDouble("bassGain", 0.0);
-        eqSettings.bassFrequency = call.getDouble("bassFrequency", 200.0);
-        eqSettings.midGain = call.getDouble("midGain", 0.0);
-        eqSettings.midFrequency = call.getDouble("midFrequency", 1499.0);
-        eqSettings.trebleGain = call.getDouble("trebleGain", 0.0);
-        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 20000.0);
+        eqSettings.bassGain = call.getDouble(RequestParameters.bassGain, 0.0);
+        eqSettings.bassFrequency = call.getDouble(RequestParameters.bassFrequency, 200.0);
+        eqSettings.midGain = call.getDouble(RequestParameters.midGain, 0.0);
+        eqSettings.midFrequency = call.getDouble(RequestParameters.midFrequency, 1499.0);
+        eqSettings.trebleGain = call.getDouble(RequestParameters.trebleGain, 0.0);
+        eqSettings.trebleFrequency = call.getDouble(RequestParameters.trebleFrequency, 20000.0);
 
-        channelSettings.volume = call.getDouble("volume", 1.0);
-        channelSettings.channelListenerName = call.getString("channelListenerName", "");
+        channelSettings.volume = call.getDouble(RequestParameters.volume, 1.0);
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName, "");
         channelSettings.eqSettings = eqSettings;
         channelSettings.channelNumber = channelNumber;
 
         micInputList.put(audioId, new MicInput(this));
         MicInput micObject = micInputList.get(audioId);
+
         micObject.setupAudio(audioId, channelSettings);
+
         call.resolve(buildBaseResponse(true, "mic was successfully initialized"));
     }
 
     @PluginMethod
     public void destroyMicInput(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "destroyMicInput")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.MIC_INPUT)){ return; };
@@ -194,32 +215,33 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void initAudioFile(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         String filePath;
         if ((audioId = getAudioId(call, "initAudioFile")) == null) { return; }
         if (audioFileList.containsKey(audioId)) {
-            call.resolve(buildBaseResponse(false, "from initAudioFile - audioId already in use"));
+            call.resolve(buildBaseResponse(false, "audioId already in use"));
             return;
         }
 
-        filePath = call.getString("filePath", "");
+        filePath = call.getString(RequestParameters.filePath, "");
         if (filePath.isEmpty()) {
-            call.resolve(buildBaseResponse(false, "from initAudioFile - filepath not found"));
+            call.resolve(buildBaseResponse(false, "filepath not found"));
             return;
         }
 
         EqSettings eqSettings = new EqSettings();
         ChannelSettings channelSettings = new ChannelSettings();
 
-        eqSettings.bassGain = call.getDouble("bassGain", 0.0);
-        eqSettings.bassFrequency = call.getDouble("bassFrequency", 200.0);
-        eqSettings.midGain = call.getDouble("midGain", 0.0);
-        eqSettings.midFrequency = call.getDouble("midFrequency", 1499.0);
-        eqSettings.trebleGain = call.getDouble("trebleGain", 0.0);
-        eqSettings.trebleFrequency = call.getDouble("trebleFrequency", 20000.0);
+        eqSettings.bassGain = call.getDouble(RequestParameters.bassGain, 0.0);
+        eqSettings.bassFrequency = call.getDouble(RequestParameters.bassFrequency, 200.0);
+        eqSettings.midGain = call.getDouble(RequestParameters.midGain, 0.0);
+        eqSettings.midFrequency = call.getDouble(RequestParameters.midFrequency, 1499.0);
+        eqSettings.trebleGain = call.getDouble(RequestParameters.trebleGain, 0.0);
+        eqSettings.trebleFrequency = call.getDouble(RequestParameters.trebleFrequency, 20000.0);
 
-        channelSettings.volume = call.getDouble("volume", 1.0);
-        channelSettings.channelListenerName = call.getString("channelListenerName", "");
+        channelSettings.volume = call.getDouble(RequestParameters.volume, 1.0);
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName, "");
         channelSettings.eqSettings = eqSettings;
 
         audioFileList.put(audioId, new AudioFile(this));
@@ -230,6 +252,7 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void destroyAudioFile(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "destroyAudioFile")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
@@ -240,51 +263,53 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void isPlaying(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "isPlaying")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
         AudioFile audioObject = audioFileList.get(audioId);
         boolean playingResponse = audioObject.isPlaying();
         JSObject response = new JSObject();
-        response.put("value", playingResponse);
+        response.put(ResponseParameters.value, playingResponse);
         call.resolve(buildBaseResponse(true, "audioFile is playing", response));
     }
 
 
     @PluginMethod
     public void play(PluginCall call) {
-        //TODO: checkAudioSessionInit
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "play")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
         AudioFile audioObject = audioFileList.get(audioId);
         final String result = audioObject.playOrPause();
         JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
-            put("state", result);
+            put(ResponseParameters.state, result);
         }});
         call.resolve(buildBaseResponse(true, "playing or pausing playback", data));
     }
 
     @PluginMethod
     public void stop(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "stop")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
         AudioFile audioObject = audioFileList.get(audioId);
         final String result = audioObject.stop();
         JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
-            put("state", result);
+            put(ResponseParameters.state, result);
         }});
         call.resolve(buildBaseResponse(true, "stopping playback", data));
-        //TODO: checkAudioSessionInit
     }
 
     @PluginMethod
     public void adjustVolume(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "adjustVolume")) == null) { return; }
-        double volume = call.getDouble("volume", -1.0);
-        String inputType = call.getString("inputType", "");
+        double volume = call.getDouble(RequestParameters.volume, -1.0);
+        String inputType = call.getString(RequestParameters.inputType, "");
 
         if (volume < 0) {
             call.resolve(buildBaseResponse(false, "in adjustVolume - volume cannot be less than zero percent"));
@@ -309,10 +334,11 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void getCurrentVolume(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "getCurrentVolume")) == null) { return; }
 
-        String inputType = call.getString("inputType", "");
+        String inputType = call.getString(RequestParameters.inputType, "");
         final double result;
         if (inputType.equals("file")) {
             if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
@@ -329,19 +355,20 @@ public class Mixer extends Plugin {
             return;
         }
         JSObject data = Utils.buildResponseData(new HashMap<String, Object>(){{
-            put("volume", result);
+            put(ResponseParameters.volume, result);
         }});
         call.resolve(buildBaseResponse(true, "Here is the current volume", data));
     }
 
     @PluginMethod
     public void adjustEq(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "getCurrentVolume")) == null) { return; }
-        String filterType = call.getString("eqType");
-        double gain = call.getDouble("gain", -100.0);
-        double freq = call.getDouble("frequency", -1.0);
-        String inputType = call.getString("inputType");
+        String filterType = call.getString(RequestParameters.eqType);
+        double gain = call.getDouble(RequestParameters.gain, -100.0);
+        double freq = call.getDouble(RequestParameters.frequency, -1.0);
+        String inputType = call.getString(RequestParameters.inputType);
 
         if (filterType.isEmpty()) {
             call.resolve(buildBaseResponse(false, "from adjustEq - filter type not specified"));
@@ -372,9 +399,10 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void getCurrentEq(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "getCurrentEq")) == null) { return; }
-        String inputType = call.getString("inputType");
+        String inputType = call.getString(RequestParameters.inputType);
         final Map<String, Object> result;
 //        final EqSettings result;
         if (inputType.equals("file")) {
@@ -397,10 +425,11 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void setElapsedTimeEvent(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "setElapsedTimeEvent")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
-        String eventName = call.getString("eventName", "");
+        String eventName = call.getString(RequestParameters.eventName, "");
         if (eventName.isEmpty()) {
             call.resolve(buildBaseResponse(false, "from setElapsedTimeEvent - eventName not found"));
             return;
@@ -412,6 +441,7 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void getElapsedTime(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "getElapsedTime")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
@@ -424,6 +454,7 @@ public class Mixer extends Plugin {
 
     @PluginMethod
     public void getTotalTime(PluginCall call) {
+        if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "getTotalTime")) == null) { return; }
         if(!checkAudioIdExists(call, audioId, ListType.AUDIO_FILE)){ return; };
@@ -438,11 +469,11 @@ public class Mixer extends Plugin {
     public void getInputChannelCount(PluginCall call) {
         //TODO: implement channel count response
         //TODO: implement deviceName response
-
+        if(!checkAudioSessionInit(call)) { return; }
         String deviceName = preferredInputDevice != null ? preferredInputDevice.getProductName().toString().trim() : "Default Mic";
         JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
-            put("channelCount", foundChannelCount);
-            put("deviceName", deviceName);
+            put(ResponseParameters.channelCount, foundChannelCount);
+            put(ResponseParameters.deviceName, deviceName);
         }});
         call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
     }
@@ -494,25 +525,25 @@ public class Mixer extends Plugin {
 
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message, JSObject data) {
         JSObject response = buildBaseResponse(wasSuccessful, message);
-        response.put("data", data);
+        response.put(ResponseParameters.data, data);
         return response;
     }
 
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message, EqSettings eqData) {
         JSObject response = buildBaseResponse(wasSuccessful, message);
-        response.put("data", eqData);
+        response.put(ResponseParameters.data, eqData);
         return response;
     }
 
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message) {
         JSObject response = new JSObject();
-        response.put("status", wasSuccessful ? "success" : "error");
-        response.put("message", message);
+        response.put(ResponseParameters.status, wasSuccessful ? "success" : "error");
+        response.put(ResponseParameters.message, message);
         return response;
     }
 
     private String getAudioId(PluginCall call, String functionName) {
-        String audioId = call.getString("audioId", "");
+        String audioId = call.getString(RequestParameters.audioId, "");
         if (audioId.isEmpty()) {
             call.resolve(buildBaseResponse(false, String.format("from %s, audioId not found", functionName)));
             return null;
@@ -532,6 +563,14 @@ public class Mixer extends Plugin {
                 call.resolve(buildBaseResponse(false, "audioId not found in micInputList"));
                 return false;
             }
+        }
+        return true;
+    }
+
+    private boolean checkAudioSessionInit(PluginCall call) {
+        if (!isAudioSessionActive) {
+            call.resolve(buildBaseResponse(false,"Must call initAudioSession prior to any other usage"));
+            return false;
         }
         return true;
     }
@@ -562,6 +601,36 @@ public class Mixer extends Plugin {
         );
     }
 
+    private void handleUsbPermission(){
+        HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
+        for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
+            UsbDevice usbDevice = entry.getValue();
+            boolean usbPermission = usbManager.hasPermission(usbDevice);
+            int interfaceCount = usbDevice.getInterfaceCount();
+            for (int x = 0; x < interfaceCount; x++){
+                UsbInterface usbInterface = usbDevice.getInterface(x);
+                Log.i("UsbInterface", usbInterface.toString());
+            }
+            Log.i("USB Device Permission", String.valueOf(usbPermission));
+            if (!usbPermission) {
+                PendingIntent permissionIntent = PendingIntent.getBroadcast(_context, 0, new Intent("com.android.mixer.USB_PERMISSION"), 0);
+                usbManager.requestPermission(usbDevice, permissionIntent);
+            }
+        }
+        return;
+    }
+
+    private void handlePreferredDevice(int convertedInputPortType){
+        List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
+        List<AudioDeviceInfo> options = deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == convertedInputPortType).collect(Collectors.toList());
+        if (options.stream().count() > 0) {
+            preferredInputDevice = options.stream().filter(item -> item.isSource()).findFirst().get();
+            preferredOutputDevice = options.stream().filter(item -> item.isSink()).findFirst().get();
+        } else {
+            Log.e("From initAudioSession:", "Preferred Device was not found");
+        }
+    }
+
     private int getSelectedAudioInterface(String inputPortType) {
 //        AVB = "avb",
 //        PCI = "pci",
@@ -576,29 +645,29 @@ public class Mixer extends Plugin {
 //        HEADSET_MIC = "headsetMic",
 //        LINE_OUT = "lineOut",
 //        THUNDERBOLT = "thunderbolt",
-        if(inputPortType == "hdmi") {
+        if(inputPortType.equals("hdmi")) {
             return AudioDeviceInfo.TYPE_HDMI;
         }
-        else if (inputPortType == "bluetoothA2DP") {
+        else if (inputPortType.equals("bluetoothA2DP")) {
             return AudioDeviceInfo.TYPE_BLUETOOTH_A2DP;
         }
-        else if (inputPortType == "bluetoothHFP") {
+        else if (inputPortType.equals("bluetoothHFP")) {
             return AudioDeviceInfo.TYPE_BLUETOOTH_SCO;
         }
-        else if (inputPortType == "builtInMic") {
+        else if (inputPortType.equals("builtInMic")) {
             return AudioDeviceInfo.TYPE_BUILTIN_MIC;
         }
         // TODO: add headsetMicUsb || headsetMicWired
-        else if (inputPortType == "headsetMic") {
+        else if (inputPortType.equals("headsetMic")) {
             return AudioDeviceInfo.TYPE_USB_HEADSET;
         }
-        else if (inputPortType == "lineIn") {
+        else if (inputPortType.equals("lineIn")) {
             return  AudioDeviceInfo.TYPE_LINE_ANALOG;
         }
-        else if (inputPortType == "usbAudio") {
+        else if (inputPortType.equals("usbAudio")) {
             return AudioDeviceInfo.TYPE_USB_DEVICE;
         }
-        else if (inputPortType == "virtual") {
+        else if (inputPortType.equals("virtual")) {
             return AudioDeviceInfo.TYPE_LINE_DIGITAL;
         }
         else {
