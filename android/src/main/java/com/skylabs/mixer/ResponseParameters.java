@@ -1,5 +1,8 @@
 package com.skylabs.mixer;
 
+/**
+ * local constant mappings for response parameters
+ */
 public class ResponseParameters {
     // BaseResponse
     public static String status = "status";

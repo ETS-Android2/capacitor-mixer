@@ -36,8 +36,13 @@ public class AudioFile {
         meterQueue = DispatchQueue(label: "mixerPlugin.audioMeter.queue.\(audioId)", qos: .userInitiated)
     }
     
+    /**
+     * Starts initialization of a player. Configures player then starts its listeners
+     *
+     * @param audioFilePath
+     * @param channelSettings
+     */
     // MARK: setupAudio
-    
     public func setupAudio(audioFilePath: NSURL, channelSettings: ChannelSettings) {
       do {
         let file = try AVAudioFile(forReading: audioFilePath as URL)
@@ -55,8 +60,13 @@ public class AudioFile {
       }
     }
     
+    /**
+     * Sets up EQ and attaches it to player
+     *
+     * @param channelSettings
+     */
     // MARK: setupEq
-    public func setupEq(with format: AVAudioFormat, channelSettings: ChannelSettings) {
+    private func setupEq(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         let bassEq = eq.bands[0]
         bassEq.filterType = .lowShelf
         bassEq.frequency = channelSettings.eqSettings!.bassFrequency!
@@ -79,8 +89,14 @@ public class AudioFile {
         configureEngine(with: format, channelSettings: channelSettings)
     }
     
+    /**
+     * Completes remaing setup for player and enables EQ
+     *
+     * @param format
+     * @param channelSettings
+     */
     // MARK: configureEngine
-    public func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
+    private func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         if (engine.isRunning) {
             engine.stop()
         }
@@ -97,7 +113,6 @@ public class AudioFile {
             playerMixer.installTap(onBus: 0, bufferSize: 1024, format: playerMixer.outputFormat(forBus: 0), block: handleMetering)
         }
         
-        // TODO 7/2 : want to uninitialize a node (Deinit and deinit and deinit well)
         engine.connect(player, to: eq, format: format)
         engine.connect(eq, to: playerMixer, format: format)
         engine.connect(playerMixer, to: engine.mainMixerNode, format: playerMixer.outputFormat(forBus: 0))
@@ -114,6 +129,9 @@ public class AudioFile {
       }
     }
     
+    /**
+     * Sets up an audio file when initilized or needs to be reset
+     */
     // MARK: scheduleAudioFile
     public func scheduleAudioFile() {
         guard let file = audioFile, needsFileScheduled else {
@@ -131,6 +149,12 @@ public class AudioFile {
         // playOrPause()
     }
     
+    /**
+     * Local listener that handles metering 
+     * 
+     * @param buffer
+     * @param time
+     */
     // MARK: handleMetering
     public func handleMetering(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
         // https://www.raywenderlich.com/21672160-avaudioengine-tutorial-for-ios-getting-started
@@ -164,6 +188,11 @@ public class AudioFile {
         }
     }
     
+    /**
+     * Adds the elapsedTimeEventName and enables playback notifications for player elapsed time
+     *
+     * @param eventName
+     */
     public func setElapsedTimeEvent(eventName: String) {
         elapsedTimeEventName = eventName
     }
@@ -171,8 +200,11 @@ public class AudioFile {
 
     // MARK: Player Controls
     
-    
-    
+    /**
+     * Handles play or pause for player
+     *
+     * @return
+     */
     // MARK: playOrPause
     public func playOrPause() -> String {
         if (self.player.isPlaying) {
@@ -189,6 +221,11 @@ public class AudioFile {
         }
     }
     
+    /**
+     * Handles "stop" for player
+     *
+     * @return
+     */
     // MARK: stop
     public func stop() -> String {
         elapsedTime = 0
@@ -197,21 +234,43 @@ public class AudioFile {
 //        needsFileScheduled = true
     }
     
+    /**
+     * Returns player if it is playing
+     *
+     * @return
+     */
     // MARK: isPlaying
     public func isPlaying() -> Bool {
         return player.isPlaying
     }
     
+    /**
+     * Changes volume for the player
+     *
+     * @param volume
+     */
     // MARK: adjustVolume
     public func adjustVolume(volume: Float) {
         playerMixer.outputVolume = volume
     }
     
+    /**
+     * Returns current volume for player
+     *
+     * @return
+     */
     // MARK: getCurrentVolume
     public func getCurrentVolume() -> Float {
         return playerMixer.outputVolume
     }
     
+    /**
+     * Changes EQ output associated with the player
+     *
+     * @param type
+     * @param gain
+     * @param freq
+     */
     // MARK: adjustEq
     public func adjustEq(type: String, gain: Float, freq: Float) {
         if(eq.bands.count < 1) {
@@ -238,6 +297,10 @@ public class AudioFile {
         }
     }
     
+    /**
+     * Returns current tracked EQ
+     * @return
+     */
     // MARK: getCurrentEq
     public func getCurrentEq() -> [String: Float] {
         if(eq.bands.count < 1) {
@@ -255,6 +318,14 @@ public class AudioFile {
                 "trebleFrequency": trebleEq.frequency]
     }
     
+    /**
+     * Returns current elapsed time on player
+     *
+     * Note: This can be done automatically using setElapsedTimeEvent
+     *
+     * @return
+     */
+    // MARK: getElapsedTime
     public func getElapsedTime() -> [String: Int] {
         if(player.elapsedTimeSeconds > elapsedTime) {
             elapsedTime = player.elapsedTimeSeconds
@@ -262,10 +333,20 @@ public class AudioFile {
         return elapsedTime.toDictionary()
     }
     
+    /**
+     * Returns total time for the loaded track
+     * @return
+     */
+    // MARK: getTotalTime
     public func getTotalTime() -> [String: Int] {
         return (audioFile?.totalDurationSeconds.toDictionary())!
     }
     
+    /**
+     * Destroys object and resets state.
+     *
+     * @return
+     */
     // MARK: Destroy
     public func destroy() -> [String : String] {
         playerMixer.removeTap(onBus: 0)
@@ -280,6 +361,9 @@ public class AudioFile {
 
 extension TimeInterval{
 
+    /**
+     * Converts TimeInterval to a dictionary that has seperated to milliSeconds, seconds, minutes and hours
+     */
     func toDictionary() -> [String : Int] {
         let time = NSInteger(self)
         let milliSeconds = Int((self.truncatingRemainder(dividingBy: 1)) * 1000)
@@ -298,6 +382,9 @@ extension TimeInterval{
 
 extension AVAudioFile {
 
+    /**
+     * Returns the total duration of the AudioFile
+     */
     var totalDurationSeconds: TimeInterval {
         let sampleRateSong = Double(processingFormat.sampleRate)
         let lengthSongSeconds = Double(length) / sampleRateSong
@@ -311,6 +398,9 @@ extension AVAudioPlayerNode {
         static var time: TimeInterval = 0
     }
     
+    /**
+     * Returns the current elapsed time of the AudioFile
+     */
     var currentElapsedTime: TimeInterval {
         get {
             guard let time = objc_getAssociatedObject(self, &currentelapsed.time) as? TimeInterval else {
@@ -323,6 +413,9 @@ extension AVAudioPlayerNode {
         }
     }
 
+    /**
+     * Returns the current elapsed time in seconds of the AudioFile
+     */
     var elapsedTimeSeconds: TimeInterval {
         if let nodeTime = lastRenderTime, let playerTime = playerTime(forNodeTime: nodeTime) {
             return Double(playerTime.sampleTime) / playerTime.sampleRate

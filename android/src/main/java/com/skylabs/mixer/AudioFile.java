@@ -41,6 +41,12 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         player.setOnPreparedListener(this);
     }
 
+    /**
+     * Starts initialization of an MediaPlayer. Configures player then starts its listeners
+     *
+     * @param audioFilePath
+     * @param channelSettings
+     */
     public void setupAudio(String audioFilePath, ChannelSettings channelSettings) {
         try {
             Uri uri = Uri.parse(audioFilePath);
@@ -64,6 +70,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
+    /**
+     * Sets up EQ and attaches it to MediaPlayer
+     *
+     * @param channelSettings
+     */
     private void setupEq(ChannelSettings channelSettings) {
         EqBand bassEq = new EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
         EqBand midEq = new EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
@@ -85,6 +96,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         configureEngine(channelSettings);
     }
 
+    /**
+     * Completes remaing setup for MediaPlayer and enables EQ
+     *
+     * @param channelSettings
+     */
     private void configureEngine(ChannelSettings channelSettings) {
         if (!channelSettings.channelListenerName.isEmpty()) {
             listenerName = channelSettings.channelListenerName;
@@ -94,10 +110,20 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         player.setVolume(currentVolume, currentVolume);
     }
 
+    /**
+     * Adds the elapsedTimeEventName and enables playback notifications for MediaPlayer elapsed time
+     *
+     * @param eventName
+     */
     public void setElapsedTimeEvent(String eventName) {
         elapsedTimeEventName = eventName;
     }
 
+    /**
+     * Handles play or pause for MediaPlayer
+     *
+     * @return
+     */
     public String playOrPause() {
         if (player.isPlaying()) {
             player.pause();
@@ -114,6 +140,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
+    /**
+     * Handles "stop" for MediaPlayer
+     *
+     * @return
+     */
     public String stop() {
         if (player.isPlaying()) {
             player.pause();
@@ -125,19 +156,41 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         return "stop";
     }
 
+    /**
+     * Returns MediaPlayer if it is playing
+     *
+     * @return
+     */
     public boolean isPlaying() {
         return player.isPlaying();
     }
 
+    /**
+     * Changes volume for the MediaPlayer
+     *
+     * @param volume
+     */
     public void adjustVolume(double volume) {
         currentVolume = (float)volume;
         player.setVolume(currentVolume, currentVolume);
     }
 
+    /**
+     * Returns current volume for MediaPlayer
+     *
+     * @return
+     */
     public double getCurrentVolume() {
         return currentVolume;
     }
 
+    /**
+     * Changes EQ output associated with the MediaPlayer
+     *
+     * @param type
+     * @param gain
+     * @param freq
+     */
     public void adjustEq(String type, double gain, double freq) {
         if (eq.getBandCount() < 1) {
             return;
@@ -168,6 +221,10 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
+    /**
+     * Returns current tracked EQ
+     * @return
+     */
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
         currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
@@ -179,17 +236,33 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         return currentEq;
     }
 
+    /**
+     * Returns current elapsed time on MediaPlayer
+     *
+     * Note: This can be done automatically using setElapsedTimeEvent
+     *
+     * @return
+     */
     public Map<String, Object> getElapsedTime() {
         // Is there an event I can subscribe to?
         Map<String, Object> elapsedTime = Utils.timeToDictionary(player.getCurrentPosition());
         return elapsedTime;
     }
 
+    /**
+     * Returns total time for the loaded track
+     * @return
+     */
     public Map<String, Object> getTotalTime() {
         Map<String, Object> totalTime = Utils.timeToDictionary(player.getDuration());
         return totalTime;
     }
 
+    /**
+     * Destroys object and resets state.
+     *
+     * @return
+     */
     public Map<String, Object> destroy() {
         stop();
         player.stop();
@@ -201,6 +274,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         return response;
     }
 
+    /**
+     * Handles when a track has completed.
+     *
+     * @param mediaPlayer
+     */
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
         try {
@@ -211,6 +289,10 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
+    /**
+     * Handles when a track has been initialized
+     * @param mediaPlayer
+     */
     @Override
     public void onPrepared(MediaPlayer mediaPlayer) {
         try {
@@ -221,6 +303,12 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
+    /**
+     * Starts listener for Audio metering.
+     *
+     * Note: this should only run when being used as it will run continuously in the background
+     *       call destroyVisualizerListener to stop process.
+     */
     private void initVisualizerListener() {
         if (listenerName.isEmpty()){
             return;
@@ -258,6 +346,9 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         visualizerState = true;
     }
 
+    /**
+     * Stop listener for audio metering.
+     */
     private void destroyVisualizerListener() {
         if (listenerName.isEmpty()){
             return;

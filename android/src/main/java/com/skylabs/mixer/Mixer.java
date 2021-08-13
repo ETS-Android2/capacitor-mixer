@@ -7,15 +7,10 @@ import android.content.Intent;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
-import android.media.AudioDeviceCallback;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
-import android.media.AudioRecord;
 import android.media.AudioRouting;
-import android.media.MediaRecorder;
-import android.media.MediaRouter;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -27,15 +22,12 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @CapacitorPlugin(
     permissions={
@@ -232,7 +224,7 @@ public class Mixer extends Plugin {
         micInputList.put(audioId, new MicInput(this));
         MicInput micObject = micInputList.get(audioId);
 
-        micObject.setupAudio(audioId, channelSettings);
+        micObject.setupAudio(channelSettings);
 
         call.resolve(buildBaseResponse(true, "mic was successfully initialized"));
     }

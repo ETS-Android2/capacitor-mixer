@@ -122,6 +122,8 @@ public class Utils {
 
 
     /**
+     * Check for uri is in ExternalStorage folder
+     *
      * @param uri The Uri to check.
      * @return Whether the Uri authority is ExternalStorageProvider.
      */
@@ -130,6 +132,8 @@ public class Utils {
     }
 
     /**
+     * Check for uri is in Downloads folder
+     *
      * @param uri The Uri to check.
      * @return Whether the Uri authority is DownloadsProvider.
      */
@@ -138,6 +142,8 @@ public class Utils {
     }
 
     /**
+     * Check for uri is in Media Documents folder
+     *
      * @param uri The Uri to check.
      * @return Whether the Uri authority is MediaProvider.
      */
@@ -145,6 +151,12 @@ public class Utils {
         return "com.android.providers.media.documents".equals(uri.getAuthority());
     }
 
+    /**
+     * Utility to convert time to a split hours, minutes, seconds and milliseconds
+     *
+     * @param time
+     * @return
+     */
     public static Map<String, Object> timeToDictionary(int time) {
         final int milliSeconds = (int) Math.floor(time);
         final int seconds = (time / 1000) % 60;
@@ -152,13 +164,19 @@ public class Utils {
         final int hours = ((time / 1000) / 3600);
 
         Map<String, Object> timeDictionary = new HashMap<String, Object>();
-        timeDictionary.put("milliSeconds", milliSeconds);
-        timeDictionary.put("seconds", seconds);
-        timeDictionary.put("minutes", minutes);
-        timeDictionary.put("hours", hours);
+        timeDictionary.put(ResponseParameters.milliSeconds, milliSeconds);
+        timeDictionary.put(ResponseParameters.seconds, seconds);
+        timeDictionary.put(ResponseParameters.minutes, minutes);
+        timeDictionary.put(ResponseParameters.hours, hours);
         return timeDictionary;
     }
 
+    /**
+     * Utility to convert a Map(String, Object) to a JSObject
+     *
+     * @param items
+     * @return
+     */
     public static JSObject buildResponseData(Map<String, Object> items) {
         JSObject response = new JSObject();
         for (Map.Entry<String, Object> entry : items.entrySet()) {
@@ -167,6 +185,12 @@ public class Utils {
         return response;
     }
 
+    /**
+     * Converts a found integer to a String type to be returned to end user.
+     *
+     * @param value
+     * @return
+     */
     public static String convertAudioPortType(int value){
         switch (value){
             case 1:

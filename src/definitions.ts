@@ -397,7 +397,7 @@ export interface VolumeMeterEvent {
 /**
  * Possible states of player
  */
-export type PlayerState = "play" | "pause" | "stop";
+export type PlayerState = "play" | "pause" | "stop" | "not implemented";
 
 /**
  * Status of the given response
@@ -513,61 +513,73 @@ export interface MixerPlugin {
    * @param listenerFunc 
    */
   addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
+
   /**
    * Toggles playback and pause on an initialized audio file
    * @param request
    */
   play(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>>;
+
   /**
    * Stops playback on a playing audio file
    * @param request 
    */
   stop(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>>;
+
   /**
    * A boolean that returns the playback state of initialized audio file
    * @param request 
    */
   isPlaying(request: BaseMixerRequest): Promise<BaseResponse<IsPlayingResponse>>;
+
   /**
    * Returns current volume of a channel as a number between 0 and 1
    * @param request 
    */
   getCurrentVolume(request: ChannelPropertyRequest): Promise<BaseResponse<VolumeResponse>>;
+
   /**
    * Returns an object with numeric values for gain and frequency in bass, mid, and treble ranges
    * @param request 
    */
   getCurrentEq(request: ChannelPropertyRequest): Promise<BaseResponse<EqResponse>>;
+
   /**
    * Returns AudioId string of initialized audio file
    * @param request 
    */
   initAudioFile(request: InitChannelRequest): Promise<BaseResponse<InitResponse>>;
+
   /**
    * Adjusts volume for a channel
    * @param request 
    */
   adjustVolume(request: AdjustVolumeRequest): Promise<BaseResponse<null>>;
+
   /**
    * Adjusts gain and frequency in bass, mid, and treble ranges for a channel
    * @param request 
    */
   adjustEq(request: AdjustEqRequest): Promise<BaseResponse<null>>;
+
   /**
    * Sets an elapsed time event name for a given audioId. Only applicable for audio files
    * @param request 
    */
   setElapsedTimeEvent(request: SetEventRequest): Promise<BaseResponse<null>>;
+
   /**
    * Returns an object representing hours, minutes, seconds, and milliseconds elapsed
    * @param request 
    */
   getElapsedTime(request: BaseMixerRequest): Promise<BaseResponse<MixerTimeResponse>>;
+
   /**
    * Returns total time in an object of hours, minutes, seconds, and millisecond totals
    * @param request 
    */
   getTotalTime(request: BaseMixerRequest): Promise<BaseResponse<MixerTimeResponse>>;
+
   /**
    * Initializes microphone channel on mixer
    * 
@@ -575,10 +587,12 @@ export interface MixerPlugin {
    * @param request 
    */
   initMicInput(request: InitChannelRequest): Promise<BaseResponse<InitResponse>>;
+
   /**
    * Returns the channel count and name of the initialized audio device
    */
   getInputChannelCount(): Promise<BaseResponse<ChannelCountResponse>>;
+
   /**
    * Initializes audio session with selected port type,
    * 
@@ -586,20 +600,24 @@ export interface MixerPlugin {
    * @param request
    */
   initAudioSession(request: InitAudioSessionRequest): Promise<BaseResponse<InitAudioSessionResponse>>;
+
   /**
    * Cancels audio session and resets selected port. Use prior to changing port type
    */
   deinitAudioSession(): Promise<BaseResponse<null>>;
+
   /**
    * Resets plugin state back to its initial state
    * 
    * <span style="color: 'red'">CAUTION: This will completely wipe everything you have initialized from the plugin!</span>
    */
   resetPlugin(): Promise<BaseResponse<null>>;
+
   /**
    * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
    */
   getAudioSessionPreferredInputPortType(): Promise<BaseResponse<InitResponse>>;
+
   /**
    * De-initializes a mic input channel based on audioId
    * 
@@ -607,6 +625,7 @@ export interface MixerPlugin {
    * @param request audioId
    */
   destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
+
   /**
    * De-initializes an audio file channel based on audioId
    * 

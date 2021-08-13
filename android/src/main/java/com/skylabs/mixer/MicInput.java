@@ -48,7 +48,12 @@ public class MicInput {
         _parent = parent;
     }
 
-    public void setupAudio(String audioId, ChannelSettings channelSettings) {
+    /**
+     * Starts initialization of an Mic input. Configures AudioTrack and AudioRecord, then starts mic and its listeners
+     *
+     * @param channelSettings
+     */
+    public void setupAudio(ChannelSettings channelSettings) {
         selectedChannel = channelSettings.channelNumber;
         int mOutChannelFormat = getAudioOutFormatEnum(_parent.foundChannelCount);
 
@@ -106,6 +111,11 @@ public class MicInput {
         setupEq(channelSettings);
     }
 
+    /**
+     * Sets up EQ and attaches it to AudioTrack object
+     *
+     * @param channelSettings
+     */
     private void setupEq(ChannelSettings channelSettings) {
         DynamicsProcessing.EqBand bassEq = new DynamicsProcessing.EqBand(true, (float)channelSettings.eqSettings.bassFrequency, (float)channelSettings.eqSettings.bassGain);
         DynamicsProcessing.EqBand midEq = new DynamicsProcessing.EqBand(true, (float)channelSettings.eqSettings.midFrequency, (float)channelSettings.eqSettings.midGain);
@@ -128,6 +138,11 @@ public class MicInput {
         configureEngine(channelSettings);
     }
 
+    /**
+     * Completes remaining setup for AudioTrack and AudioRecord objects and enables EQ
+     *
+     * @param channelSettings
+     */
     private void configureEngine(ChannelSettings channelSettings) {
         if (!channelSettings.channelListenerName.isEmpty()) {
             listenerName = channelSettings.channelListenerName;
@@ -148,27 +163,59 @@ public class MicInput {
         record();
     }
 
+    /**
+     * Not Implemented for MicInput
+     *
+     * @return
+     */
     public String playOrPause() {
-        return "Not implemented.";
+        return "not implemented";
     }
 
+    /**
+     * Not Implemented for MicInput
+     *
+     * @return
+     */
     public String stop() {
-        return "Not implemented.";
+        return "not implemented";
     }
 
+    /**
+     * Always returns true for MicInput
+     *
+     * @return
+     */
     public boolean isPlaying() {
         return true;
     }
 
+    /**
+     * Changes volume for the AudioTrack
+     *
+     * @param volume
+     */
     public void adjustVolume(double volume) {
         currentVolume = volume;
         mAudioOutput.setVolume((float)volume);
     }
 
+    /**
+     * Returns current volume for AudioTrack
+     *
+     * @return
+     */
     public double getCurrentVolume() {
         return currentVolume;
     }
 
+    /**
+     * Changes EQ output associated with the AudioTrack
+     *
+     * @param type
+     * @param gain
+     * @param freq
+     */
     public void adjustEq(String type, double gain, double freq) {
         if (eq.getBandCount() < 1) {
             return;
@@ -199,6 +246,11 @@ public class MicInput {
         }
     }
 
+    /**
+     * Returns current tracked EQ
+     *
+     * @return
+     */
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
         currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
@@ -210,7 +262,12 @@ public class MicInput {
         return currentEq;
     }
 
-
+    /**
+     * Stops mic input temporarily and removes meter notifications and alerts listener.
+     *
+     * Note: processes will continue running for AudioRecord and AudioTrack in thread.
+     * This should only be used temporarily
+     */
     public void interrupt() {
         mAudioOutput.setVolume(0);
         if(visualizerState){
@@ -222,6 +279,9 @@ public class MicInput {
         _parent.notifyPluginListeners(_parent.audioSessionListenerName, response);
     }
 
+    /**
+     * Resumes mic input and starts meter notifications and alerts listener.
+     */
     public void resumeFromInterrupt() {
         mAudioOutput.setVolume((float)currentVolume);
         if(!visualizerState){
@@ -233,6 +293,11 @@ public class MicInput {
         _parent.notifyPluginListeners(_parent.audioSessionListenerName, response);
     }
 
+    /**
+     * Destroys object and resets state
+     *
+     * @return
+     */
     public Map<String, Object> destroy() {
         if(visualizerState) {
             destroyVisualizerListener();
@@ -244,7 +309,10 @@ public class MicInput {
         return response;
     }
 
-    public void record() {
+    /**
+     * Starts AudioRecord and AudioTrack and starts metering in its own Thread
+     */
+    private void record() {
         Thread t = new Thread() {
             public void run() {
 
@@ -325,6 +393,12 @@ public class MicInput {
         t.start();
     }
 
+    /**
+     * Tries to determine AudioFormat based on found number of channels
+     *
+     * @param numberOfChannels
+     * @return
+     */
     private int getAudioOutFormatEnum(int numberOfChannels){
         switch (numberOfChannels){
             case 1:
@@ -342,6 +416,12 @@ public class MicInput {
         }
     }
 
+    /**
+     * Starts listener for Audio metering.
+     *
+     * Note: this should only run when being used as it will run continuously in the background
+     *       call destroyVisualizerListener to stop process.
+     */
     private void initVisualizerListener() {
         if (listenerName.isEmpty()){
             return;
@@ -376,6 +456,9 @@ public class MicInput {
         }
     }
 
+    /**
+     * Stop listener for audio metering.
+     */
     private void destroyVisualizerListener() {
         if (listenerName.isEmpty()){
             return;

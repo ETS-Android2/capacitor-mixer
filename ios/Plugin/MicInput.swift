@@ -30,8 +30,7 @@ public class MicInput {
     public var toFormat: AVAudioFormat;
     
 
-    // TODO 7/2 : Want to be able to deinitialize mic channels
-    // TODO 7/5 : Want to be able to initialize audio session (not in super load)
+
     // TODO 7/5 : Handle audio session interrupts
     init(parent: Mixer, audioId: String){
         _parent = parent
@@ -45,14 +44,23 @@ public class MicInput {
         print("We are being disposed")
     }
     
+    /**
+     * Starts initialization of an Mic input. Configures then starts mic and its listeners
+     *
+     * @param channelSettings
+     */
     // MARK: setupAudio
-    
     public func setupAudio(audioFilePath: NSURL, channelSettings: ChannelSettings) {
         setupEq(with: AVAudioFormat(), channelSettings: channelSettings)
     }
     
+    /**
+     * Sets up EQ for input
+     *
+     * @param channelSettings
+     */
     // MARK: setupEq
-    public func setupEq(with format: AVAudioFormat, channelSettings: ChannelSettings) {
+    private func setupEq(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         let bassEq = eq.bands[0]
         bassEq.filterType = .lowShelf
         bassEq.frequency = channelSettings.eqSettings!.bassFrequency!
@@ -75,6 +83,11 @@ public class MicInput {
         configureEngine(with: format, channelSettings: channelSettings)
     }
     
+    /**
+     * Completes remaining setup for objects and enables EQ
+     *
+     * @param channelSettings
+     */
     // MARK: configureEngine
     public func configureEngine(with format: AVAudioFormat, channelSettings: ChannelSettings) {
         if (engine.isRunning) {
@@ -117,8 +130,13 @@ public class MicInput {
       }
     }
     
+    /**
+     * Local listener that handles metering 
+     * 
+     * @param buffer
+     * @param time
+     */
     // MARK: handleMetering
-    // TODO: move method into dispatchqueue
     public func handleMetering(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
         // https://www.raywenderlich.com/21672160-avaudioengine-tutorial-for-ios-getting-started
         meterQueue.async{
@@ -138,15 +156,20 @@ public class MicInput {
             .reduce(0, +) / Float(buffer.frameLength))
           
             let avgPower = 20 * log10(rms)
-//          let meterLevel = self.scaledPower(power: avgPower)
             let response = avgPower < -80 ? -80 : avgPower
 
             self._parent.notifyListeners(self.listenerName, data: ["meterLevel": response])
             
         }
     }
-    // MARK: Handle Input Buffer
-    // TODO: remove this if not needed and uncomment tap for volume metering
+
+    /**
+     * Handles looping over and creating a buffer for mic input
+     * 
+     * @param buffer
+     * @param time
+     */
+    // MARK: handleInputBuffer
     public func handleInputBuffer(buffer: AVAudioPCMBuffer, time: AVAudioTime) {
         micInputQueue.async {
             // Gets all channels from AVAudioPCMBuffer in an array
@@ -163,38 +186,67 @@ public class MicInput {
         }
     }
 
-
     // MARK: Player Controls
-    
-    
-    
+
+    /**
+     * Not Implemented for MicInput
+     *
+     * @return
+     */
     // MARK: playOrPause
     public func playOrPause() -> String {
-        return "Not implemented."
+        return "not implemented"
     }
+
+    /**
+     * Not Implemented for MicInput
+     *
+     * @return
+     */
     // MARK: stop
     public func stop() -> String {
-        return "Not implemented."
-//        needsFileScheduled = true
+        return "not implemented"
     }
     
+    /**
+     * Always returns true for MicInput
+     *
+     * @return
+     */
     // MARK: isPlaying
     public func isPlaying() -> Bool {
         return true
     }
     
+    /**
+     * Changes volume for the mic player
+     *
+     * @param volume
+     */
     // MARK: adjustVolume
     public func adjustVolume(volume: Float) {
         micMixer.outputVolume = volume
 //        micInput.volume = volume
     }
     
+    /**
+     * Returns current volume for mic player
+     *
+     * @return
+     */
     // MARK: getCurrentVolume
     public func getCurrentVolume() -> Float {
         return micMixer.outputVolume
 //        return micInput.volume
     }
     
+    /**
+     * Changes EQ output associated with the mic player
+     *
+     * @param type
+     * @param gain
+     * @param freq
+     */
     // MARK: adjustEq
     public func adjustEq(type: String, gain: Float, freq: Float) {
         if(eq.bands.count < 1) {
@@ -221,6 +273,11 @@ public class MicInput {
         }
     }
     
+    /**
+     * Returns current tracked EQ
+     *
+     * @return
+     */
     // MARK: getCurrentEq
     public func getCurrentEq() -> [String: Float] {
         if(eq.bands.count < 1) {
@@ -238,32 +295,28 @@ public class MicInput {
                 "trebleFrequency": trebleEq.frequency]
     }
     
+    /** 
+     * Not implemented for MicInput
+     */
+    // MARK: getElapsedTime
     public func getElapsedTime() -> [String: Int] {
         return ["statusCode": 1]
     }
     
+    /** 
+     * Not implemented for MicInput
+     */
+    // MARK: getTotalTime
     public func getTotalTime() -> [String: Int] {
         return ["statusCode": 1]
     }
-  
-    public func scaledPower(power: Float) -> Float {
-        guard power.isFinite else {
-          return 0.0
-        }
-
-        let minDb: Float = -80
-
-        // 2
-        if power < minDb {
-          return 0.0
-        } else if power >= 1.0 {
-          return 1.0
-        } else {
-          // 3
-          return (abs(minDb) - abs(power)) / abs(minDb)
-        }
-    }
     
+    /**
+     * Stops mic input temporarily and removes meter notifications and alerts listener.
+     *
+     * Note: processes will continue running for AudioRecord and AudioTrack in thread.
+     * This should only be used temporarily
+     */
     // MARK: interrupt
     public func interrupt() {
         micMixer.removeTap(onBus: 0)
@@ -272,6 +325,9 @@ public class MicInput {
         engine.stop()
     }
     
+    /**
+     * Resumes mic input and starts meter notifications and alerts listener.
+     */
     // MARK: resumeFromInterrupt
     public func resumeFromInterrupt() {
         micInput = engine.inputNode
@@ -288,6 +344,11 @@ public class MicInput {
         }
     }
     
+    /**
+     * Destroys object and resets state
+     *
+     * @return
+     */
     // MARK: Destroy
     public func destroy() -> [String : String] {
         micMixer.removeTap(onBus: 0)

@@ -1,5 +1,8 @@
 package com.skylabs.mixer;
 
+/**
+ * local constant mappings for request parameters
+ */
 public class RequestParameters {
     // BaseMixerRequest
     public static String audioId = "audioId";

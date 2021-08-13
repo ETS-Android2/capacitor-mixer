@@ -1,5 +1,8 @@
 package com.skylabs.mixer;
 
+/**
+ * Local model to help handle EqSettings
+ */
 public class EqSettings {
     public double bassGain;
     public double bassFrequency;

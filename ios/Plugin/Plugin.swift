@@ -23,8 +23,8 @@ public class Mixer: CAPPlugin {
         super.load()
         registerForSessionInterrupts()
         registerForSessionRouteChange()
-        registerForMediaServicesWereReset()
-        registerForMediaServicesWereLost()
+        // registerForMediaServicesWereReset()
+        // registerForMediaServicesWereLost()
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
             try audioSession.setPreferredIOBufferDuration(0.005)
@@ -36,15 +36,10 @@ public class Mixer: CAPPlugin {
     }
 
     /**
-         * Requests permissions required by the mixer plugin
-         *
-         * - iOS: Permissions must be added to application in the Info Target Properties
-         *
-         * - Android: Permissions must be added to AndroidManifest.XML
-         *
-         * See README for additional information on permissions
-         * @param call
-         */
+     * Requests permissions required by the mixer plugin
+     * See README for additional information on permissions
+     * @param call
+     */
     @objc func requestMixerPermissions(_ call: CAPPluginCall) {
         requestPermissions();
         call.resolve(buildBaseResponse(wasSuccessful: false, message: "not implemented yet"))
@@ -65,16 +60,13 @@ public class Mixer: CAPPlugin {
 
         audioSessionListenerName = call.getString("audioSessionListenerName") ?? ""
         let inputPortType = call.getString("inputPortType") ?? ""
-//        let outputPortType = call.getString("outputPortType") ?? ""
         let ioBufferDuration = call.getDouble("ioBufferDuration") ?? -1
 
         do {
-//            try audioSession.setActive(false)
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
             if (ioBufferDuration > 0) {
                 try audioSession.setPreferredIOBufferDuration(ioBufferDuration)
             }
-//            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         }
         catch let error {
             isAudioSessionActive = false
@@ -86,9 +78,7 @@ public class Mixer: CAPPlugin {
             return determineAudioSessionPortDescription(desc: desc, type: inputPortType)
         }) {
             do {
-//                try audioSession.setActive(false)
                 try audioSession.setPreferredInput(inputDesc)
-//                try audioSession.setActive(true)
             } catch let error {
                 isAudioSessionActive = false
                 call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
@@ -121,20 +111,10 @@ public class Mixer: CAPPlugin {
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
     }
     
-    // MARK: dispatchQueueTest
-//    @objc func dispatchQueueTest(isActive: Bool) {
-//            do {
-//                try self.audioSession.setActive(isActive)
-//                print("boop")
-//            } catch {
-//                print("beep")
-//            }
-//    }
-    
     /**
-         * Cancels audio session and resets selected port. Use prior to changing port type
-         * @param call
-         */
+     * Cancels audio session and resets selected port. Use prior to changing port type
+     * @param call
+     */
     // MARK: deinitAudioSession
     @objc func deinitAudioSession(_ call: CAPPluginCall) {
         do {
@@ -148,11 +128,11 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Resets plugin state back to its initial state
-         *
-         * CAUTION: This will completely wipe everything you have initialized from the plugin!
-         * @param call
-         */
+     * Resets plugin state back to its initial state
+     *
+     * CAUTION: This will completely wipe everything you have initialized from the plugin!
+     * @param call
+     */
     // MARK: resetPlugin
     @objc func resetPlugin(_ call: CAPPluginCall) {
         do {
@@ -176,9 +156,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
-         * @param call
-         */
+     * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+     * @param call
+     */
     // MARK: getAudioSessionPreferredInputPortType
     @objc func getAudioSessionPreferredInputPortType(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -186,21 +166,22 @@ public class Mixer: CAPPlugin {
     }
 
     /**
-         * Initializes microphone channel on mixer
-         *
-         * Returns AudioId string of initialized microphone input
-         * @param call { audioId: String;
-         *             channelNumber: Float;
-         *             bassGain: Float;
-         *             bassFrequency: Float;
-         *             midGain: Float;
-         *             midFrequency: Float;
-         *             trebleGain: Float;
-         *             trebleFrequency: Float;
-         *             volume: Float;
-         *             channelListenerName: String;
-         *            }
-         */
+     * Initializes microphone channel on mixer
+     *
+     * Returns AudioId string of initialized microphone input
+     * @param call { 
+     *             audioId: String;
+     *             channelNumber: Float;
+     *             bassGain: Float;
+     *             bassFrequency: Float;
+     *             midGain: Float;
+     *             midFrequency: Float;
+     *             trebleGain: Float;
+     *             trebleFrequency: Float;
+     *             volume: Float;
+     *             channelListenerName: String;
+     *            }
+     */
     // MARK: initMicInput
     @objc func initMicInput(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -236,11 +217,11 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         *De-initializes a mic input channel based on audioId
-         *
-         * Note: Once destroyed, the channel cannot be recovered
-         * @param call { audioId: String; }
-         */
+     * De-initializes a mic input channel based on audioId
+     *
+     * Note: Once destroyed, the channel cannot be recovered
+     * @param call { audioId: String; }
+     */
     // MARK: destroyMicInput
     @objc func destroyMicInput(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -251,8 +232,8 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns AudioId string of initialized audio file
-         * @param call { audioId: String;
+     * Returns AudioId string of initialized audio file
+     * @param call { audioId: String;
      *             channelNumber: Float;
      *             bassGain: Float;
      *             bassFrequency: Float;
@@ -262,8 +243,8 @@ public class Mixer: CAPPlugin {
      *             trebleFrequency: Float;
      *             volume: Float;
      *             channelListenerName: String;
-         *            }
-         */
+     *            }
+     */
     // MARK: initAudioFile
     @objc func initAudioFile(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -295,7 +276,6 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "audioId already in use"))
             return
         }
-        // TODO: move filePath scrubbing into AudioFile.setupAudio? <-- Human question mark, not swift question mark
         audioFileList[audioId] = AudioFile(parent: self, audioId: audioId)
         if (filePath != "") {
             let scrubbedString = filePath.addingPercentEncoding(withAllowedCharacters: .urlFragmentAllowed) ?? ""
@@ -314,11 +294,11 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * De-initializes an audio file channel based on audioId
-         *
-         * Note: Once destroyed, the channel cannot be recovered
-         * @param call { audioId: String; }
-         */
+     * De-initializes an audio file channel based on audioId
+     *
+     * Note: Once destroyed, the channel cannot be recovered
+     * @param call { audioId: String; }
+     */
     // MARK: destroyAudioFile
     @objc func destroyAudioFile(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -328,6 +308,10 @@ public class Mixer: CAPPlugin {
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "Audio file \(audioId) destroyed", data: response))
     }
     
+    /**
+     * A boolean that returns the playback state of initialized audio file
+     * @param call { audioId: String; }
+     */
     // MARK: isPlaying
     @objc func isPlaying(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -336,17 +320,12 @@ public class Mixer: CAPPlugin {
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "audio file is playing", data: ["value": result]))
     }
     
-
-    
-    
-
-    // TODO: Return error to user when play is hit before choosing file
-    
     /**
-         * Toggles playback and pause on an initialized audio file
-         * @param call { audioId: String; }
-         */
+     * Toggles playback and pause on an initialized audio file
+     * @param call { audioId: String; }
+     */
     @objc func play(_ call: CAPPluginCall) {
+        // TODO: Return error to user when play is hit before choosing file
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "play") else {return}
         let result = audioFileList[audioId]!.playOrPause()
@@ -354,9 +333,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Stops playback on a playing audio file
-         * @param call { audioId: String; }
-         */
+     * Stops playback on a playing audio file
+     * @param call { audioId: String; }
+     */
     // MARK: stop
     @objc func stop(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -366,9 +345,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Adjusts volume for a channel
-         * @param call { audioId: String; volume: Float; inputType: String; }
-         */
+     * Adjusts volume for a channel
+     * @param call { audioId: String; volume: Float; inputType: String; }
+     */
     // MARK: adjustVolume
     @objc func adjustVolume(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -394,9 +373,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns current volume of a channel as a number between 0 and 1
-         * @param call { audioId: String; inputType: String; }
-         */
+     * Returns current volume of a channel as a number between 0 and 1
+     * @param call { audioId: String; inputType: String; }
+     */
     // MARK: getCurrentVolume
     @objc func getCurrentVolume(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -417,14 +396,14 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Adjusts gain and frequency in bass, mid, and treble ranges for a channel
-         * @param call { audioId: String;
-         *              eqType: String;
-         *             gain: Float;
-         *             frequency: Float;
-         *             inputType: String;
-         *             }
-         */
+     * Adjusts gain and frequency in bass, mid, and treble ranges for a channel
+     * @param call { audioId: String;
+     *              eqType: String;
+     *             gain: Float;
+     *             frequency: Float;
+     *             inputType: String;
+     *             }
+     */
     // MARK: adjustEq
     @objc func adjustEq(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -460,9 +439,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns an object with numeric values for gain and frequency in bass, mid, and treble ranges
-         * @param call { audioId: String; inputType: String; }
-         */
+     * Returns an object with numeric values for gain and frequency in bass, mid, and treble ranges
+     * @param call { audioId: String; inputType: String; }
+     */
     // MARK: getCurrentEq
     @objc func getCurrentEq(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -484,9 +463,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Sets an elapsed time event name for a given audioId. Only applicable for audio files
-         * @param call { audioId: String; eventName: String; }
-         */
+     * Sets an elapsed time event name for a given audioId. Only applicable for audio files
+     * @param call { audioId: String; eventName: String; }
+     */
     // MARK: setElapsedTimeEvent
     @objc func setElapsedTimeEvent(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -501,9 +480,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns an object representing hours, minutes, seconds, and milliseconds elapsed
-         * @param call { audioId: String; }
-         */
+     * Returns an object representing hours, minutes, seconds, and milliseconds elapsed
+     * @param call { audioId: String; }
+     */
     // MARK: getElapsedTime
     @objc func getElapsedTime(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -513,9 +492,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns total time in an object of hours, minutes, seconds, and millisecond totals
-         * @param call { audioId: String; }
-         */
+     * Returns total time in an object of hours, minutes, seconds, and millisecond totals
+     * @param call { audioId: String; }
+     */
     // MARK: getTotalTime
     @objc func getTotalTime(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -525,9 +504,9 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Returns the channel count and name of the initialized audio device
-         * @param call
-         */
+     * Returns the channel count and name of the initialized audio device
+     * @param call
+     */
     // MARK: getInputChannelCount
     @objc func getInputChannelCount(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
@@ -537,13 +516,13 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Utility method to get audioId from CAPPlugin object
-         *
-         * Handles resolving method if no audioId found
-         * @param call
-         * @param functionName
-         * @return
-         */
+     * Utility method to get audioId from CAPPlugin object
+     *
+     * Handles resolving method if no audioId found
+     * @param call
+     * @param functionName
+     * @return
+     */
     // MARK: getAudioId
     private func getAudioId(call: CAPPluginCall, functionName: String) -> String? {
         let audioId = call.getString("audioId") ?? ""
@@ -559,12 +538,12 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Generic response builder
-         * @param wasSuccessful
-         * @param message
-         * @param data
-         * @return
-         */
+     * Generic response builder
+     * @param wasSuccessful
+     * @param message
+     * @param data
+     * @return
+     */
     private func buildBaseResponse(wasSuccessful: Bool, message: String, data: [String: Any] = [:]) -> [String: Any] {
         if (wasSuccessful) {
             return ["status": "success", "message": message, "data": data]
@@ -575,12 +554,12 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Utility method to determine if an audio session is active
-         *
-         * Handles resolve if audio session is not active
-         * @param call
-         * @return
-         */
+     * Utility method to determine if an audio session is active
+     *
+     * Handles resolve if audio session is not active
+     * @param call
+     * @return
+     */
     private func checkAudioSessionInit(call: CAPPluginCall) -> Bool? {
         if (isAudioSessionActive == false) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Must call initAudioSession prior to any other usage"))
@@ -590,10 +569,10 @@ public class Mixer: CAPPlugin {
     }
     
     /**
-         * Finds audio device enum value based on passed-in port type
-         * @param inputPortType
-         * @return
-         */
+     * Finds audio device enum value based on passed-in port type
+     * @param inputPortType
+     * @return
+     */
     private func determineAudioSessionPortDescription(desc: AVAudioSessionPortDescription, type: String) -> Bool {
         switch type {
             // case "avb":
@@ -661,13 +640,11 @@ public class Mixer: CAPPlugin {
     
     // TODO: Think about removing this observer when audioSession.isActive is set to false
     private func registerForSessionInterrupts() {
-//        let nc = NotificationCenter.default
         nc.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: audioSession)
     }
     
     // TODO: Think about removing this observer when audioSession.isActive is set to false
     private func registerForSessionRouteChange() {
-//        let nc = NotificationCenter.default
         DispatchQueue.main.async {
             self.nc.addObserver(self, selector: #selector(self.handleRouteChange), name: AVAudioSession.routeChangeNotification, object: self.audioSession)
         }

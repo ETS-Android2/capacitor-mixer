@@ -29,7 +29,6 @@ ext {
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"></uses-permission>
 <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"></uses-permission>
 <uses-permission android:name="android.permission.RECORD_AUDIO"></uses-permission>
-<uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION"></uses-permission>
 <uses-permission android:name="android.permission.READ_PHONE_STATE"></uses-permission>
 ```
 <docgen-index>
