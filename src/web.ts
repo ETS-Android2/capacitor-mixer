@@ -1,4 +1,5 @@
 import { WebPlugin } from '@capacitor/core';
+
 import type {
   AdjustEqRequest,
   AdjustVolumeRequest,
@@ -19,7 +20,6 @@ import type {
   InitAudioSessionResponse,
   InitAudioSessionRequest
 } from './definitions';
-
 import {
   AudioSessionPortType,
   ResponseStatus

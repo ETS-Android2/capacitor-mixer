@@ -1,6 +1,6 @@
 //#region Request Objects
 
-import { PluginListenerHandle } from "@capacitor/core";
+import type { PluginListenerHandle } from "@capacitor/core";
 
 /**
  * Base class for all mixer requests, consists of audioId only
@@ -378,7 +378,7 @@ export interface AudioSessionEvent {
 /**
  * Event response for handling current elapsed time
  */
-export interface MixerTimeEvent extends MixerTimeResponse { }
+export type MixerTimeEvent = MixerTimeResponse
 
 /**
  * Event response for handling current volume level

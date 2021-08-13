@@ -41,7 +41,7 @@ public class Mixer: CAPPlugin {
      * @param call
      */
     @objc func requestMixerPermissions(_ call: CAPPluginCall) {
-        requestPermissions();
+        requestPermissions(call);
         call.resolve(buildBaseResponse(wasSuccessful: false, message: "not implemented yet"))
     }
 
@@ -88,12 +88,6 @@ public class Mixer: CAPPlugin {
         }
         do {
             try audioSession.setActive(true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.dispatchQueueTest(isActive: false)
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.dispatchQueueTest(isActive: true)
-            }
             print("Current route is: \(audioSession.currentRoute)")
         } catch let error {
             isAudioSessionActive = false
@@ -544,6 +538,7 @@ public class Mixer: CAPPlugin {
      * @param data
      * @return
      */
+    // MARK: buildBaseResponse
     private func buildBaseResponse(wasSuccessful: Bool, message: String, data: [String: Any] = [:]) -> [String: Any] {
         if (wasSuccessful) {
             return ["status": "success", "message": message, "data": data]
@@ -560,6 +555,7 @@ public class Mixer: CAPPlugin {
      * @param call
      * @return
      */
+    // MARK: checkAudioSessionInit
     private func checkAudioSessionInit(call: CAPPluginCall) -> Bool? {
         if (isAudioSessionActive == false) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Must call initAudioSession prior to any other usage"))
@@ -573,6 +569,7 @@ public class Mixer: CAPPlugin {
      * @param inputPortType
      * @return
      */
+    // MARK: determineAudioSessionPortDescription
     private func determineAudioSessionPortDescription(desc: AVAudioSessionPortDescription, type: String) -> Bool {
         switch type {
             // case "avb":
@@ -638,26 +635,57 @@ public class Mixer: CAPPlugin {
         }
     }
     
+    /**
+     * Creates observer for interruption notifications
+     *
+     * Registers handleInterruption() as callback
+     */
     // TODO: Think about removing this observer when audioSession.isActive is set to false
+    // MARK: registerForSessionInterrupts
     private func registerForSessionInterrupts() {
         nc.addObserver(self, selector: #selector(handleInterruption), name: AVAudioSession.interruptionNotification, object: audioSession)
     }
     
+    /**
+     * Creates observer for route change notifications
+     *
+     * Registers handleRouteChange() as callback
+     */
     // TODO: Think about removing this observer when audioSession.isActive is set to false
+    // MARK: registerForSessionRouteChange
     private func registerForSessionRouteChange() {
         DispatchQueue.main.async {
             self.nc.addObserver(self, selector: #selector(self.handleRouteChange), name: AVAudioSession.routeChangeNotification, object: self.audioSession)
         }
     }
     
+    /**
+     * Creates observer for when media services are reset
+     *
+     * Registers handleServiceReset() as callback
+     */
+    // MARK: registerForMediaServicesWereReset
     private func registerForMediaServicesWereReset() {
         nc.addObserver(self, selector: #selector(handleServiceReset), name: AVAudioSession.mediaServicesWereResetNotification, object: audioSession)
     }
     
+    /**
+     * Creates observer for when media services are lost
+     *
+     * Registers handleServiceLost() as callback
+     */
+    // MARK: registerForMediaServicesWereLost
     private func registerForMediaServicesWereLost() {
         nc.addObserver(self, selector: #selector(handleServiceLost), name: AVAudioSession.mediaServicesWereLostNotification, object: audioSession)
     }
     
+    /**
+     * Callback for media route change
+     *
+     * Stops or resumes mic playback for micInputList
+     *
+     * Notifies JavaScript listener for audioSessionListenerName
+     */
     // MARK: handleRouteChange
     @objc func handleRouteChange(notification: Notification) {
         DispatchQueue.main.async {
@@ -698,6 +726,13 @@ public class Mixer: CAPPlugin {
         }
     }
     
+    /**
+     * Callback for media interruption
+     *
+     * Stops or resumes audioPlayer playback for audioFileList
+     *
+     * Notifies JavaScript listener for audioSessionListenerName
+     */
     // MARK: handleInterruption
     @objc func handleInterruption(notification: Notification) {
         guard let userInfo = notification.userInfo,
@@ -733,6 +768,10 @@ public class Mixer: CAPPlugin {
         }
     }
     
+     /**
+     * Internal log for service resets
+     */
+    // MARK: handleServiceReset
     @objc func handleServiceReset(notification: Notification) {
 //        guard let userInfo = notification.userInfo,
 //              let typeValue = userInfo[AVAudioSession] as? UInt,
@@ -741,6 +780,10 @@ public class Mixer: CAPPlugin {
         print("From handleServiceReset - Notification is: \(notification)")
     }
     
+    /**
+     * Internal log for losing service
+     */
+    // MARK: handleServiceLost
     @objc func handleServiceLost(notification: Notification) {
         print("From handleServiceLost - Notification is: \(notification)")
     }
