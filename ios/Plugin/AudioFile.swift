@@ -248,11 +248,11 @@ public class AudioFile {
         let trebleEq = eq.bands[2]
         
         return ["bassGain": bassEq.gain,
-                "bassFreq": bassEq.frequency,
+                "bassFrequency": bassEq.frequency,
                 "midGain": midEq.gain,
-                "midFreq": midEq.frequency,
+                "midFrequency": midEq.frequency,
                 "trebleGain": trebleEq.gain,
-                "trebleFreq": trebleEq.frequency]
+                "trebleFrequency": trebleEq.frequency]
     }
     
     public func getElapsedTime() -> [String: Int] {

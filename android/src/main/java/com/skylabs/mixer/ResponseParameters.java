@@ -23,11 +23,11 @@ public class ResponseParameters {
 
     // EqResponse
     public static String bassGain = "bassGain";
-    public static String bassFreq = "bassFreq";
+    public static String bassFrequency = "bassFrequency";
     public static String midGain = "midGain";
-    public static String midFreq = "midFreq";
+    public static String midFrequency = "midFrequency";
     public static String trebleGain = "trebleGain";
-    public static String trebleFreq = "trebleFreq";
+    public static String trebleFrequency = "trebleFrequency";
 
     // VolumeMeterResponse
     public static String meterLevel = "meterLevel";

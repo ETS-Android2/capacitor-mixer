@@ -132,7 +132,6 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     public void adjustVolume(double volume) {
         currentVolume = (float)volume;
         player.setVolume(currentVolume, currentVolume);
-        // TODO: ? get values as floats?
     }
 
     public double getCurrentVolume() {
@@ -172,11 +171,11 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
         currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
-        currentEq.put(ResponseParameters.bassFreq, eq.getBand(0).getCutoffFrequency());
+        currentEq.put(ResponseParameters.bassFrequency, eq.getBand(0).getCutoffFrequency());
         currentEq.put(ResponseParameters.midGain, eq.getBand(1).getGain());
-        currentEq.put(ResponseParameters.midFreq, eq.getBand(1).getCutoffFrequency());
+        currentEq.put(ResponseParameters.midFrequency, eq.getBand(1).getCutoffFrequency());
         currentEq.put(ResponseParameters.trebleGain, eq.getBand(2).getGain());
-        currentEq.put(ResponseParameters.trebleFreq, eq.getBand(2).getCutoffFrequency());
+        currentEq.put(ResponseParameters.trebleFrequency, eq.getBand(2).getCutoffFrequency());
         return currentEq;
     }
 
@@ -222,8 +221,10 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         }
     }
 
-    //TODO: Destroying and releasing objects
     private void initVisualizerListener() {
+        if (listenerName.isEmpty()){
+            return;
+        }
         visualizer = new Visualizer(player.getAudioSessionId());
         visualizer.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED);
         visualizer.setMeasurementMode(Visualizer.MEASUREMENT_MODE_PEAK_RMS);
@@ -258,6 +259,9 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
     }
 
     private void destroyVisualizerListener() {
+        if (listenerName.isEmpty()){
+            return;
+        }
         if (visualizerState) {
             visualizer.setDataCaptureListener(null, 0, false, false);
             visualizer.setEnabled(false);

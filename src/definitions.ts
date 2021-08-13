@@ -3,25 +3,29 @@
 import { PluginListenerHandle } from "@capacitor/core";
 
 /**
- * Base class for all mixer requests
+ * Base class for all mixer requests, consists of audioId only
  */
 export interface BaseMixerRequest {
   /**
-   * A string identifying the audio file
+   * A string identifying the audio file or microphone channel instance
    */
   audioId: string;
 }
-/**
- * For mixer requests specifying filePath on device
- */
 
+/**
+ * Request used to initialize a channel on the mixer
+ */
 export interface InitChannelRequest extends BaseMixerRequest {
   /**
-   * A string identifying the path to the audio file on device. Unused if initializing microphone channel
+   * A string identifying the path to the audio file on device. 
+   * 
+   * Unused if initializing microphone channel
    */
   filePath?: string;
   /**
-   * The channel number being initialized for microphone. Unused if initializing audio file
+   * The channel number being initialized for microphone. 
+   * 
+   * Unused if initializing audio file
    */
   channelNumber?: number;
   /**
@@ -31,9 +35,11 @@ export interface InitChannelRequest extends BaseMixerRequest {
    */
   bassGain?: number;
   /**
-   * Optional init eq setting for low shelf
+   * Optional init eq setting for bass EQ band
    * 
-   * Default: 115Hz
+   * iOS Default: 115Hz
+   * 
+   * Android Default: 200Hz
    */
   bassFrequency?: number;
   /**
@@ -43,9 +49,11 @@ export interface InitChannelRequest extends BaseMixerRequest {
    */
   midGain?: number;
   /**
-   * Optional init setting for parametric mid band
+   * Optional init setting for mid EQ band
    * 
-   * Default: 500Hz
+   * iOS Default: 500Hz
+   * 
+   * Android Default: 1499Hz
    */
   midFrequency?: number;
   /**
@@ -55,9 +63,11 @@ export interface InitChannelRequest extends BaseMixerRequest {
    */
   trebleGain?: number;
   /**
-   * Optional init eq setting for high shelf
+   * Optional init eq setting for treble EQ band
    * 
-   * Default: 1.5kHhz
+   * iOS Default: 1.5kHz
+   * 
+   * Android Default: 20kHz
    */
   trebleFrequency?: number;
   /**
@@ -71,25 +81,29 @@ export interface InitChannelRequest extends BaseMixerRequest {
   /**
    * Required name used to set listener for volume metering
    * 
+   * Subscribed event returns VolumeMeterEvent
+   * 
    * Note: if empty string is passed, metering will be disabled on channel
    */
   channelListenerName: string;
 }
+
 /**
- * For mixer requests specifying volume level
+ * For mixer requests manipulating volume level
  */
 export interface AdjustVolumeRequest extends BaseMixerRequest {
   /**
-   * A number between 0 and 1 specifying volume level
+   * A number between 0 and 1 specifying volume level being set
    */
   volume: number;
   /**
-   * Select between microphone and audio file input
+   * Type of input on which volume is being adjusted
    */
   inputType: InputType;
 }
+
 /**
- * For mixer requests interacting with EQ 
+ * For mixer requests manipulating EQ 
  */
 export interface AdjustEqRequest extends BaseMixerRequest {
   /**
@@ -103,24 +117,30 @@ export interface AdjustEqRequest extends BaseMixerRequest {
   /**
    * A number identifying cutoff/central frequency for EQ band
    * 
-   * Bass: <range>
+   * Bass: 
+   * - iOS implemented as a low shelf 
+   * - Android implemented as a high pass filter
    * 
-   * Mid: <range>
+   * Mid:
+   * - implemented as a parametric 'bump'
    * 
-   * Treble: <range>
+   * Treble:
+   * - iOS implemented as a high shelf
+   * - Android implemented as a low pass filter
    */
   frequency: number;
   /**
-   * Select between microphone and audio file input
+   * Type of input on which EQ is being adjusted
    */
   inputType: InputType;
 }
+
 /**
- * Get info about channel properties such as current volume, EQ, etc.
+ * Request to get info about channel properties such as current volume, EQ, etc.
  */
 export interface ChannelPropertyRequest extends BaseMixerRequest {
   /**
-   * Select between micophone and audio file input
+   * Type of input on which properties are being requested
    */
   inputType: InputType;
 }
@@ -131,120 +151,314 @@ export interface ChannelPropertyRequest extends BaseMixerRequest {
 export interface SetEventRequest extends BaseMixerRequest {
   /**
    * The name of the event that will be subscribed to
+   * 
+   * Subscribed event returns MixerTimeEvent
    */
   eventName: string;
 }
-
+/**
+ * Request to initialize an audio session
+ */
 export interface InitAudioSessionRequest {
+  /**
+   * An enum describing input hardware device to be used
+   */
   inputPortType?: AudioSessionPortType,
+  /**
+   * iOS only
+   * 
+   * The preferred duration of the input buffer (0.05 recommended as a starting point, change may be observed as output latency)
+   */
   ioBufferDuration?: number,
+  /**
+   * The name of the audio session event that will be subscribed to.
+   * 
+   * Subscribed event returns AudioSessionEvent
+   */
   audioSessionListenerName?: string
 }
 //#endregion
 
 //#region Response Objects
+
+/**
+ * The response wrapper for all response objects
+ */
 export interface BaseResponse<T> {
+  /**
+   * Status of returned request. 
+   * 
+   * Ex: 'SUCCESS', 'ERROR'
+   */
   status: ResponseStatus,
+  /**
+   * Message that describes response
+   * 
+   * Note: Can be used for user messages
+   */
   message: string,
+  /**
+   * Response data object field
+   * 
+   * Ex: A MixerTimeResponse object
+   */
   data: T
 }
 
+/**
+ * Response representing HH:MM:SS.ms-formatted time
+ */
 export interface MixerTimeResponse {
+  /**
+   * ms in formatted time
+   */
   milliSeconds: number,
+  /**
+   * SS in formatted time
+   */
   seconds: number,
+  /**
+   * MM in formatted time
+   */
   minutes: number,
+  /**
+   * HH in formatted time
+   */
   hours: number
 }
 
+/**
+ * Response that returns PlayerState
+ */
 export interface PlaybackStateResponse {
-  state: string
+  /**
+   * Represents the state of the player
+   */
+  state: PlayerState
 }
 
-export interface PlaybackStateBoolean {
+/**
+ * Response for tracking player state as a boolean
+ */
+export interface IsPlayingResponse {
+  /**
+   * Value of tracked player state
+   */
   value: boolean
 }
 
+/**
+ * Response for tracking channel volume
+ */
 export interface VolumeResponse {
+  /**
+   * Value of tracked channel volume
+   */
   volume: number
 }
 
+/**
+ * Response for tracking channel EQ
+ */
 export interface EqResponse {
+  /**
+   * Bass gain for channel
+   * 
+   * - Range: -36 to +15 dB
+   */
   bassGain: number
-  bassFreq: number
+  /**
+   * Bass frequency for channel
+   * 
+   * - Suggested range: 20Hz to 499Hz
+   */
+  bassFrequency: number
+  /**
+   * Mid gain for channel
+   * 
+   * - Range: -36 to +15 dB
+   */
   midGain: number
-  midFreq: number
+  /**
+   * Mid frequency for channel
+   * 
+   * - Suggested range: 500Hz to 1499Hz
+   */
+  midFrequency: number
+  /**
+   * Treble gain for channel
+   * 
+   * - Range: -36 to +15 dB
+   */
   trebleGain: number
-  trebleFreq: number
+  /**
+   * Treble frequency for channel
+   * 
+   * - Suggested range: 1.5kHz to 20kHz
+   */
+  trebleFrequency: number
 }
 
-export interface VolumeMeterResponse {
-  meterLevel: number
-}
-
+/**
+ * Response for initialization of channel
+ */
 export interface InitResponse {
+  /**
+   * Initialized channel audioId
+   */
   value: string
 }
 
+/**
+ * Response for channel count of requested audio port
+ */
 export interface ChannelCountResponse {
+  /**
+   * Number of channels found
+   */
   channelCount: number
+  /**
+   * Name of the device at the requested audio port
+   */
   deviceName: string
 }
+
 /**
- * listenerName and elapsedTimeEventNames will be populated 
- * with each appropriate event name. 
- * If names not found, empty string will be returned.
+ * Response for destroying a channel
  */
 export interface DestroyResponse {
+  /**
+   * The name of the volume metering event
+   * 
+   * Note: If no event is found, empty string is returned
+   */
   listenerName: string
+  /**
+   * The name of the elapsed time event
+   * 
+   * Note: If no event is found, empty string is returned
+   */
   elapsedTimeEventName: string
 }
 
+/**
+ * Response for initalizing audio session
+ */
 export interface InitAudioSessionResponse {
+  /**
+   * Type found when initializing audio session
+   */
   preferredInputPortType: AudioSessionPortType,
+  /**
+   * Device name found when initializing audio session
+   */
   preferredInputPortName: string,
+  /**
+   * iOS only 
+   * 
+   * Preferred buffer duration when initializing audio session 
+   */
   preferredIOBufferDuration: number
 }
+
 //#endregion
 
+//#region Event Objects
+
+/**
+ * Event response for handling audio session notifications
+ */
+export interface AudioSessionEvent {
+  /**
+   * The event type that occurred
+   */
+  handlerType: AudioSessionHandlerTypes;
+}
+
+/**
+ * Event response for handling current elapsed time
+ */
+export interface MixerTimeEvent extends MixerTimeResponse { }
+
+/**
+ * Event response for handling current volume level
+ */
+export interface VolumeMeterEvent {
+  /**
+   * Calculated amplitude in dB
+   * 
+   * - Range: -80 to 0 dB
+   */
+  meterLevel: number
+}
+
+//#endregion
+
+/**
+ * Possible states of player
+ */
+export type PlayerState = "play" | "pause" | "stop";
+
+/**
+ * Status of the given response
+ */
 export enum ResponseStatus {
   SUCCESS = "success",
   ERROR = "error"
 }
 
+/**
+ * Band selection for EQ
+ */
 export enum EqType {
   BASS = "bass",
   MID = "mid",
   TREBLE = "treble"
 }
 
+/**
+ * Channel type selection for mixer
+ */
 export enum InputType {
   MIC = "mic",
   FILE = "file"
 }
 
+/**
+ * Audio Session port type
+ */
 export enum AudioSessionPortType {
-  AVB = "avb",
+  // AVB = "avb",
   HDMI = "hdmi",
-  PCI = "pci",
+  // PCI = "pci",
+  /**
+   * iOS only
+   */
   AIRPLAY = "airplay",
   BLUETOOTH_A2DP = "bluetoothA2DP",
   BLUETOOTH_HFP = "bluetoothHFP",
+  /**
+   * iOS only
+   */
   BLUETOOTH_LE = "bluetoothLE",
   BUILT_IN_MIC = "builtInMic",
-  BUILT_IN_RECEIVER = "builtInReceiver",
-  BUILT_IN_SPEAKER = "builtInSpeaker",
-  CAR_AUDIO = "carAudio",
-  DISPLAY_PORT = "displayPort",
-  FIREWIRE = "firewire",
-  HEADPHONES = "headphones",
-  HEADSET_MIC = "headsetMic",
+  /**
+   * iOS only
+   */
+  HEADSET_MIC_WIRED = "headsetMicWired",
+  HEADSET_MIC_USB = "headsetMicUsb",
   LINE_IN = "lineIn",
-  LINE_OUT = "lineOut",
+  /**
+   * iOS only
+   */
   THUNDERBOLT = "thunderbolt",
   USB_AUDIO = "usbAudio",
   VIRTUAL = "virtual"
 }
 
+/**
+ * Response types for Audio Session events
+ */
 export enum AudioSessionHandlerTypes {
   /**
    * Invoked when another audio session has started
@@ -274,10 +488,30 @@ export enum AudioSessionHandlerTypes {
 
 export interface MixerPlugin {
 
-  // TODO: write a comment on cleanup day
+  /**
+   * Requests permissions required by the mixer plugin
+   * 
+   * - iOS: Permissions must be added to application in the Info Target Properties
+   * 
+   * - Android: Permissions must be added to AndroidManifest.XML
+   * 
+   * See README for additional information on permissions
+   */
   requestMixerPermissions(): Promise<BaseResponse<null>>;
 
-  // TODO: write a comment on cleanup day
+  /**
+   * Adds listener for events 
+   * 
+   * Can be an AudioSessionEvent, MixerTimeEvent, or VolumeMeterEvent
+   * 
+   * Ex: 
+   * 
+   * Register Listener: `Mixer.addListener("myEventName", this.myListenerFunction.bind(this))`
+   * 
+   * `myListenerFunction(response: AudioSessionEvent) { // handle event }`
+   * @param eventName 
+   * @param listenerFunc 
+   */
   addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
   /**
    * Toggles playback and pause on an initialized audio file
@@ -290,12 +524,12 @@ export interface MixerPlugin {
    */
   stop(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>>;
   /**
-   * A boolean that reports the playback state of initialized audio file
+   * A boolean that returns the playback state of initialized audio file
    * @param request 
    */
-  isPlaying(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateBoolean>>;
+  isPlaying(request: BaseMixerRequest): Promise<BaseResponse<IsPlayingResponse>>;
   /**
-   * Reports current volume of playing audio file as a number between 0 and 1
+   * Returns current volume of a channel as a number between 0 and 1
    * @param request 
    */
   getCurrentVolume(request: ChannelPropertyRequest): Promise<BaseResponse<VolumeResponse>>;
@@ -310,17 +544,17 @@ export interface MixerPlugin {
    */
   initAudioFile(request: InitChannelRequest): Promise<BaseResponse<InitResponse>>;
   /**
-   * Returns void, allows user to adjust volume
+   * Adjusts volume for a channel
    * @param request 
    */
   adjustVolume(request: AdjustVolumeRequest): Promise<BaseResponse<null>>;
   /**
-   * Returns void, allows user to adjust gain and frequency in bass, mid, and treble ranges
+   * Adjusts gain and frequency in bass, mid, and treble ranges for a channel
    * @param request 
    */
   adjustEq(request: AdjustEqRequest): Promise<BaseResponse<null>>;
   /**
-   * Sets an elapsed time event for a given audioId. Only applicable for audio files.
+   * Sets an elapsed time event name for a given audioId. Only applicable for audio files
    * @param request 
    */
   setElapsedTimeEvent(request: SetEventRequest): Promise<BaseResponse<null>>;
@@ -335,28 +569,31 @@ export interface MixerPlugin {
    */
   getTotalTime(request: BaseMixerRequest): Promise<BaseResponse<MixerTimeResponse>>;
   /**
+   * Initializes microphone channel on mixer
+   * 
    * Returns AudioId string of initialized microphone input
    * @param request 
    */
   initMicInput(request: InitChannelRequest): Promise<BaseResponse<InitResponse>>;
   /**
-   * Returns the count and name of the initialized audio device
+   * Returns the channel count and name of the initialized audio device
    */
   getInputChannelCount(): Promise<BaseResponse<ChannelCountResponse>>;
   /**
-   * Initializes audio session with passed-in port type,
+   * Initializes audio session with selected port type,
    * 
    * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+   * @param request
    */
   initAudioSession(request: InitAudioSessionRequest): Promise<BaseResponse<InitAudioSessionResponse>>;
   /**
-   * Sets 'isAudioSessionActive' bool to false, does not reset plugin state
+   * Cancels audio session and resets selected port. Use prior to changing port type
    */
   deinitAudioSession(): Promise<BaseResponse<null>>;
   /**
    * Resets plugin state back to its initial state
    * 
-   * CAUTION: This will completely wipe everything you have initialized from the plugin!
+   * <span style="color: 'red'">CAUTION: This will completely wipe everything you have initialized from the plugin!</span>
    */
   resetPlugin(): Promise<BaseResponse<null>>;
   /**
@@ -364,14 +601,16 @@ export interface MixerPlugin {
    */
   getAudioSessionPreferredInputPortType(): Promise<BaseResponse<InitResponse>>;
   /**
-   * De-initializes a mic input based on passed-in audioId
+   * De-initializes a mic input channel based on audioId
    * 
+   * Note: Once destroyed, the channel cannot be recovered
    * @param request audioId
    */
   destroyMicInput(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
   /**
-   * De-initializes an audio file based on passed-in audioId
+   * De-initializes an audio file channel based on audioId
    * 
+   * Note: Once destroyed, the channel cannot be recovered
    * @param request audioId
    */
   destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;

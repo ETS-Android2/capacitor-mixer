@@ -11,7 +11,7 @@ import type {
   InitResponse,
   MixerPlugin,
   MixerTimeResponse,
-  PlaybackStateBoolean,
+  IsPlayingResponse,
   PlaybackStateResponse,
   SetEventRequest,
   VolumeResponse,
@@ -40,15 +40,15 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
 
   async play(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('ECHO', options);
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: "play" } };
   }
 
   async stop(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('boi', options);
-    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: options.audioId } };
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: "stop" } };
   }
 
-  async isPlaying(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateBoolean>> {
+  async isPlaying(options: BaseMixerRequest): Promise<BaseResponse<IsPlayingResponse>> {
     console.log('areyouplaying?', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: true } };
   }
@@ -62,9 +62,9 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     console.log('tell us about eq', options);
     return {
       status: ResponseStatus.ERROR, message: "not implemented", data: {
-        bassGain: -1, bassFreq: -1,
-        midGain: -1, midFreq: -1,
-        trebleGain: -1, trebleFreq: -1
+        bassGain: -1, bassFrequency: -1,
+        midGain: -1, midFrequency: -1,
+        trebleGain: -1, trebleFrequency: -1
       }
     };
   }

@@ -98,6 +98,12 @@ public class Mixer extends Plugin {
         usbManager = (UsbManager) _context.getSystemService(Context.USB_SERVICE);
     }
 
+    /**
+     * Initializes audio session with selected port type
+     *
+     * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+     * @param call { String inputPortType; double ioBufferDuration; String audioSessionListenerName }
+     */
     @PluginMethod
     public void initAudioSession(PluginCall call) {
         audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName, "");
@@ -108,7 +114,6 @@ public class Mixer extends Plugin {
         int convertedInputPortType = getSelectedAudioInterface(inputPortType);
 
         handleUsbPermission();
-        // TODO: move into its own method to handle found devices
         handlePreferredDevice(convertedInputPortType);
 
         String preferredInputPortName = "Default Mic";
@@ -128,6 +133,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "successfully initialized audio session", response));
     }
 
+    /**
+     * Cancels audio session and resets selected port. Use prior to changing port type
+     * @param call
+     */
     @PluginMethod
     public void deinitAudioSession(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -137,8 +146,14 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Successfully deinitialized audio session"));
     }
 
+    /**
+     * Resets plugin state back to its initial state
+     *
+     * CAUTION: This will completely wipe everything you have initialized from the plugin!
+     * @param call
+     */
     @PluginMethod
-    public void restartPlugin(PluginCall call) {
+    public void resetPlugin(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
         preferredInputDevice = null;
         preferredOutputDevice = null;
@@ -154,6 +169,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Successfully restarted plugin to original state."));
     }
 
+    /**
+     * Returns a value describing the initialized port type for the audio session (usb, built-in, etc.)
+     * @param call
+     */
     @PluginMethod
     public void getAudioSessionPreferredInputPortType(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -163,6 +182,22 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Successfully got preferred input", response));
     }
 
+    /**
+     * Initializes microphone channel on mixer
+     *
+     * Returns AudioId string of initialized microphone input
+     * @param call { String audioId;
+     *             int channelNumber;
+     *             double bassGain;
+     *             double bassFrequency;
+     *             double midGain;
+     *             double midFrequency;
+     *             double trebleGain;
+     *             double trebleFrequency;
+     *             double volume;
+     *             String channelListenerName;
+     *            }
+     */
     @PluginMethod
     public void initMicInput(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -202,6 +237,12 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "mic was successfully initialized"));
     }
 
+    /**
+     *De-initializes a mic input channel based on audioId
+     *
+     * Note: Once destroyed, the channel cannot be recovered
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void destroyMicInput(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -213,6 +254,20 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "mic input destroyed", Utils.buildResponseData(response)));
     }
 
+    /**
+     * Returns AudioId string of initialized audio file
+     * @param call { String audioId;
+     *             int channelNumber;
+     *             double bassGain;
+     *             double bassFrequency;
+     *             double midGain;
+     *             double midFrequency;
+     *             double trebleGain;
+     *             double trebleFrequency;
+     *             double volume;
+     *             String channelListenerName;
+     *            }
+     */
     @PluginMethod
     public void initAudioFile(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -250,6 +305,12 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "audio file was successfully initialized"));
     }
 
+    /**
+     * De-initializes an audio file channel based on audioId
+     *
+     * Note: Once destroyed, the channel cannot be recovered
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void destroyAudioFile(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -261,6 +322,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "audioFile destroyed", Utils.buildResponseData(response)));
     }
 
+    /**
+     * A boolean that returns the playback state of initialized audio file
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void isPlaying(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -274,7 +339,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "audioFile is playing", response));
     }
 
-
+    /**
+     * Toggles playback and pause on an initialized audio file
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void play(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -289,6 +357,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "playing or pausing playback", data));
     }
 
+    /**
+     * Stops playback on a playing audio file
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void stop(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -303,6 +375,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "stopping playback", data));
     }
 
+    /**
+     * Adjusts volume for a channel
+     * @param call { String audioId; double volume; String inputType; }
+     */
     @PluginMethod
     public void adjustVolume(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -332,6 +408,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "You are adjusting the volume"));
     }
 
+    /**
+     * Returns current volume of a channel as a number between 0 and 1
+     * @param call { String audioId; String inputType; }
+     */
     @PluginMethod
     public void getCurrentVolume(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -360,6 +440,15 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Here is the current volume", data));
     }
 
+    /**
+     * Adjusts gain and frequency in bass, mid, and treble ranges for a channel
+     * @param call { String audioId;
+     *             String eqType;
+     *             double gain;
+     *             double frequency
+     *             String inputType
+     *             }
+     */
     @PluginMethod
     public void adjustEq(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -397,6 +486,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "You are adjusting EQ"));
     }
 
+    /**
+     * Returns an object with numeric values for gain and frequency in bass, mid, and treble ranges
+     * @param call { String audioId; String inputType; }
+     */
     @PluginMethod
     public void getCurrentEq(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -423,6 +516,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Here is the current EQ", data));
     }
 
+    /**
+     * Sets an elapsed time event name for a given audioId. Only applicable for audio files
+     * @param call { String audioId; String eventName; }
+     */
     @PluginMethod
     public void setElapsedTimeEvent(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -439,6 +536,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "set elapsed time event"));
     }
 
+    /**
+     * Returns an object representing hours, minutes, seconds, and milliseconds elapsed
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void getElapsedTime(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -452,6 +553,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "got elapsed time", data));
     }
 
+    /**
+     * Returns total time in an object of hours, minutes, seconds, and millisecond totals
+     * @param call { String audioId; }
+     */
     @PluginMethod
     public void getTotalTime(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
@@ -465,10 +570,12 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "got total time", data));
     }
 
+    /**
+     * Returns the channel count and name of the initialized audio device
+     * @param call
+     */
     @PluginMethod
     public void getInputChannelCount(PluginCall call) {
-        //TODO: implement channel count response
-        //TODO: implement deviceName response
         if(!checkAudioSessionInit(call)) { return; }
         String deviceName = preferredInputDevice != null ? preferredInputDevice.getProductName().toString().trim() : "Default Mic";
         JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
@@ -478,6 +585,16 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "got input channel count and device name", data));
     }
 
+    /**
+     * Requests permissions required by the mixer plugin
+     *
+     * - iOS: Permissions must be added to application in the Info Target Properties
+     *
+     * - Android: Permissions must be added to AndroidManifest.XML
+     *
+     * See README for additional information on permissions
+     * @param call
+     */
     @PluginMethod
     public void requestMixerPermissions(PluginCall call) {
         if (getPermissionState("storage") != PermissionState.GRANTED) {
@@ -489,7 +606,10 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "All required permissions granted."));
     }
 
-    // TODO: implement permissions for audio files and storage
+    /**
+     * Handles updating permissions for storage
+     * @param call
+     */
     @PermissionCallback
     private void storagePermissionCallback(PluginCall call) {
         try {
@@ -504,6 +624,11 @@ public class Mixer extends Plugin {
         }
 
     }
+
+    /**
+     * Handles updating permissions for audio
+     * @param call
+     */
     @PermissionCallback
     private void audioPermissionCallback(PluginCall call) {
         try {
@@ -518,23 +643,34 @@ public class Mixer extends Plugin {
         }
     }
 
-
+    /**
+     * Proxy method for child classes to notify JavaScript events
+     * @param eventName
+     * @param data
+     */
     public void notifyPluginListeners(String eventName, JSObject data) {
         notifyListeners(eventName, data);
     }
 
+    /**
+     * Generic response builder
+     * @param wasSuccessful
+     * @param message
+     * @param data
+     * @return
+     */
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message, JSObject data) {
         JSObject response = buildBaseResponse(wasSuccessful, message);
         response.put(ResponseParameters.data, data);
         return response;
     }
 
-    private JSObject buildBaseResponse(Boolean wasSuccessful, String message, EqSettings eqData) {
-        JSObject response = buildBaseResponse(wasSuccessful, message);
-        response.put(ResponseParameters.data, eqData);
-        return response;
-    }
-
+    /**
+     * Generic response builder without data parameter
+     * @param wasSuccessful
+     * @param message
+     * @return
+     */
     private JSObject buildBaseResponse(Boolean wasSuccessful, String message) {
         JSObject response = new JSObject();
         response.put(ResponseParameters.status, wasSuccessful ? "success" : "error");
@@ -542,6 +678,14 @@ public class Mixer extends Plugin {
         return response;
     }
 
+    /**
+     * Utility method to get audioId from CAPPlugin object
+     *
+     * Handles resolving method if no audioId found
+     * @param call
+     * @param functionName
+     * @return
+     */
     private String getAudioId(PluginCall call, String functionName) {
         String audioId = call.getString(RequestParameters.audioId, "");
         if (audioId.isEmpty()) {
@@ -551,6 +695,15 @@ public class Mixer extends Plugin {
         return audioId;
     }
 
+    /**
+     * Utility method to determine if audioId is being used in microphone or audio file lists
+     *
+     * Handles resolve if audioId not found in either list
+     * @param call
+     * @param audioId
+     * @param type
+     * @return
+     */
     private boolean checkAudioIdExists(PluginCall call, String audioId, ListType type) {
         if(type == ListType.AUDIO_FILE) {
             if(!audioFileList.containsKey(audioId)){
@@ -567,6 +720,13 @@ public class Mixer extends Plugin {
         return true;
     }
 
+    /**
+     * Utility method to determine if an audio session is active
+     *
+     * Handles resolve if audio session is not active
+     * @param call
+     * @return
+     */
     private boolean checkAudioSessionInit(PluginCall call) {
         if (!isAudioSessionActive) {
             call.resolve(buildBaseResponse(false,"Must call initAudioSession prior to any other usage"));
@@ -575,6 +735,9 @@ public class Mixer extends Plugin {
         return true;
     }
 
+    /**
+     * Finds information about requested audio port type and sets global values to be used throughout application
+     */
     private void setInputDeviceValues() {
         int[] channelMasks = preferredInputDevice.getChannelMasks();
         if(channelMasks.length > 0){
@@ -601,6 +764,9 @@ public class Mixer extends Plugin {
         );
     }
 
+    /**
+     * Handles USB permissions if needed, based on passed-in requested port type
+     */
     private void handleUsbPermission(){
         HashMap<String, UsbDevice> usbDeviceList = usbManager.getDeviceList();
         for (Map.Entry<String, UsbDevice> entry : usbDeviceList.entrySet()) {
@@ -620,6 +786,10 @@ public class Mixer extends Plugin {
         return;
     }
 
+    /**
+     * Finds preferred device based on pased-in port type
+     * @param convertedInputPortType
+     */
     private void handlePreferredDevice(int convertedInputPortType){
         List<AudioDeviceInfo> deviceInfoList = Arrays.asList(audioManager.getDevices(AudioManager.GET_DEVICES_INPUTS | AudioManager.GET_DEVICES_OUTPUTS));
         List<AudioDeviceInfo> options = deviceInfoList.stream().filter(deviceInfo -> deviceInfo.getType() == convertedInputPortType).collect(Collectors.toList());
@@ -631,6 +801,11 @@ public class Mixer extends Plugin {
         }
     }
 
+    /**
+     * Finds audio device enum value based on passed-in port type
+     * @param inputPortType
+     * @return
+     */
     private int getSelectedAudioInterface(String inputPortType) {
 //        AVB = "avb",
 //        PCI = "pci",
@@ -657,9 +832,11 @@ public class Mixer extends Plugin {
         else if (inputPortType.equals("builtInMic")) {
             return AudioDeviceInfo.TYPE_BUILTIN_MIC;
         }
-        // TODO: add headsetMicUsb || headsetMicWired
-        else if (inputPortType.equals("headsetMic")) {
+        else if (inputPortType.equals("headsetMicUsb")) {
             return AudioDeviceInfo.TYPE_USB_HEADSET;
+        }
+        else if (inputPortType.equals("headsetMicWired")) {
+            return AudioDeviceInfo.TYPE_WIRED_HEADSET;
         }
         else if (inputPortType.equals("lineIn")) {
             return  AudioDeviceInfo.TYPE_LINE_ANALOG;

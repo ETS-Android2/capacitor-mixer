@@ -1,18 +1,14 @@
 package com.skylabs.mixer;
 
 import android.media.AudioAttributes;
-import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioRecord;
-import android.media.AudioRouting;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
 import android.media.MicrophoneInfo;
 import android.media.audiofx.DynamicsProcessing;
 import android.media.audiofx.Visualizer;
-import android.os.Build;
-import android.os.Handler;
 import android.util.Log;
 
 import com.getcapacitor.JSObject;
@@ -206,11 +202,11 @@ public class MicInput {
     public Map<String, Object> getCurrentEq() {
         Map<String, Object> currentEq = new HashMap<String, Object>();
         currentEq.put(ResponseParameters.bassGain, eq.getBand(0).getGain());
-        currentEq.put(ResponseParameters.bassFreq, eq.getBand(0).getCutoffFrequency());
+        currentEq.put(ResponseParameters.bassFrequency, eq.getBand(0).getCutoffFrequency());
         currentEq.put(ResponseParameters.midGain, eq.getBand(1).getGain());
-        currentEq.put(ResponseParameters.midFreq, eq.getBand(1).getCutoffFrequency());
+        currentEq.put(ResponseParameters.midFrequency, eq.getBand(1).getCutoffFrequency());
         currentEq.put(ResponseParameters.trebleGain, eq.getBand(2).getGain());
-        currentEq.put(ResponseParameters.trebleFreq, eq.getBand(2).getCutoffFrequency());
+        currentEq.put(ResponseParameters.trebleFrequency, eq.getBand(2).getCutoffFrequency());
         return currentEq;
     }
 
@@ -347,6 +343,9 @@ public class MicInput {
     }
 
     private void initVisualizerListener() {
+        if (listenerName.isEmpty()){
+            return;
+        }
         if(!visualizerState){
             visualizer = new Visualizer(mAudioOutput.getAudioSessionId());
             visualizer.setScalingMode(Visualizer.SCALING_MODE_AS_PLAYED);
@@ -378,6 +377,9 @@ public class MicInput {
     }
 
     private void destroyVisualizerListener() {
+        if (listenerName.isEmpty()){
+            return;
+        }
         if (visualizerState) {
             visualizer.setDataCaptureListener(null, 0, false, false);
             visualizer.setEnabled(false);
