@@ -49,7 +49,7 @@
     "dist/",
     "ios/",
     "android/",
-    "MixerPlugin.podspec"
+    "SkylabsTechnologyCapacitorMixer.podspec"
   ],
   "keywords": [
     "capacitor",
