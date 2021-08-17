@@ -158,7 +158,7 @@ Register Listener:
 ```typescript
 Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
 
-myListenerFunction(response: <a href="#audiosessionevent">AudioSessionEvent</a>) { 
+myListenerFunction(response: <a href="#volumemeterevent">VolumeMeterEvent</a>) { 
  // handle event 
 }
 ```
@@ -620,7 +620,7 @@ Request used to initialize a channel on the mixer
 | -------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **`filePath`**             | <code>string</code> | A string identifying the path to the audio file on device. Unused if initializing microphone channel                                                                     |
 | **`elapsedTimeEventName`** | <code>string</code> | A string identifying the elapsed time event name. This will automatically set the event and setElapsedTimeEvent is not needed. Unused if initializing microphone channel |
-| **`channelNumber`**        | <code>number</code> | The channel number being initialized for microphone. Unused if initializing audio file                                                                                   |
+| **`channelNumber`**        | <code>number</code> | The channel number being initialized for microphone. Starts at 0. Unused if initializing audio file                                                                      |
 | **`bassGain`**             | <code>number</code> | Optional bass gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                              |
 | **`bassFrequency`**        | <code>number</code> | Optional init eq setting for bass EQ band iOS Default: 115Hz Android Default: 200Hz                                                                                      |
 | **`midGain`**              | <code>number</code> | Optional mid gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                               |

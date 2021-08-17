@@ -30,7 +30,7 @@ export interface InitChannelRequest extends BaseMixerRequest {
    */
   elapsedTimeEventName?: string;
   /**
-   * The channel number being initialized for microphone. 
+   * The channel number being initialized for microphone. Starts at 0.
    * 
    * Unused if initializing audio file
    */
@@ -551,7 +551,7 @@ export interface MixerPlugin {
    * ```typescript
    * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
    * 
-   * myListenerFunction(response: AudioSessionEvent) { 
+   * myListenerFunction(response: VolumeMeterEvent) { 
    *  // handle event 
    * }
    * ```
