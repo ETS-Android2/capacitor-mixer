@@ -23,6 +23,13 @@ export interface InitChannelRequest extends BaseMixerRequest {
    */
   filePath?: string;
   /**
+   * A string identifying the elapsed time event name. This will automatically
+   * set the event and setElapsedTimeEvent is not needed.
+   * 
+   * Unused if initializing microphone channel
+   */
+  elapsedTimeEventName?: string;
+  /**
    * The channel number being initialized for microphone. 
    * 
    * Unused if initializing audio file
@@ -602,7 +609,10 @@ export interface MixerPlugin {
   adjustEq(request: AdjustEqRequest): Promise<BaseResponse<null>>;
 
   /**
-   * Sets an elapsed time event name for a given audioId. Only applicable for audio files
+   * Sets an elapsed time event name for a given audioId. To unset elapsedTimeEvent 
+   * pass an empty string and this will stop the event from being triggered.
+   * 
+   * Only applicable for audio files
    * @param request 
    */
   setElapsedTimeEvent(request: SetEventRequest): Promise<BaseResponse<null>>;

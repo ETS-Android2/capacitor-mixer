@@ -112,6 +112,10 @@ public class AudioFile {
             playerMixer.removeTap(onBus: 0)
             playerMixer.installTap(onBus: 0, bufferSize: 1024, format: playerMixer.outputFormat(forBus: 0), block: handleMetering)
         }
+
+        if (channelSettings.elapsedTimeEventName != "") {
+            setElapsedTimeEvent(channelSettings.elapsedTimeEventName)
+        }
         
         engine.connect(player, to: eq, format: format)
         engine.connect(eq, to: playerMixer, format: format)

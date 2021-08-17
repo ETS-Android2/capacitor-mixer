@@ -237,6 +237,7 @@ public class Mixer: CAPPlugin {
      *             trebleFrequency: Float;
      *             volume: Float;
      *             channelListenerName: String;
+     *             elapsedTimeEventName: String;
      *            }
      */
     // MARK: initAudioFile
@@ -257,6 +258,7 @@ public class Mixer: CAPPlugin {
         channelSettings.volume = call.getFloat("volume") ?? 1.0
         channelSettings.channelListenerName = call.getString("channelListenerName") ?? ""
         channelSettings.eqSettings = eqSettings
+        channelSettings.elapsedTimeEventName = call.getString("elapsedTimeEventName") ?? ""
         
         if (filePath.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "filePath not found"))

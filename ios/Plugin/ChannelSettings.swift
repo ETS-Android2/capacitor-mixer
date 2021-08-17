@@ -13,4 +13,5 @@ public class ChannelSettings {
     public var channelListenerName: String?
     public var eqSettings: EqSettings?
     public var channelNumber: Int?
+    public var elapsedTimeEventName: String?
 }

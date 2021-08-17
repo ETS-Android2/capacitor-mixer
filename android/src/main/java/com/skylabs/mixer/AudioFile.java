@@ -105,6 +105,9 @@ public class AudioFile implements MediaPlayer.OnPreparedListener, MediaPlayer.On
         if (!channelSettings.channelListenerName.isEmpty()) {
             listenerName = channelSettings.channelListenerName;
         }
+        if (!channelSettings.elapsedTimeEventName.isEmpty()) {
+            setElapsedTimeEvent(channelSettings.elapsedTimeEventName);
+        }
         dp.setEnabled(true);
         currentVolume = (float)channelSettings.volume;
         player.setVolume(currentVolume, currentVolume);

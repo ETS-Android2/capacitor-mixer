@@ -291,6 +291,8 @@ public class Mixer extends Plugin {
         channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName, "");
         channelSettings.eqSettings = eqSettings;
 
+        channelSettings.channelListenerName = call.getString(RequestParameters.elapsedTimeEventName, "");
+
         audioFileList.put(audioId, new AudioFile(this));
         AudioFile audioObject = audioFileList.get(audioId);
         audioObject.setupAudio(filePath, channelSettings);

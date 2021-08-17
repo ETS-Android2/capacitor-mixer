@@ -8,4 +8,5 @@ public class ChannelSettings {
     public String channelListenerName;
     public EqSettings eqSettings;
     public int channelNumber;
+    public String elapsedTimeEventName;
 }

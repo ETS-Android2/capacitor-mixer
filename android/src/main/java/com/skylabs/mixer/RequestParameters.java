@@ -18,6 +18,7 @@ public class RequestParameters {
     public static String trebleFrequency = "trebleFrequency";
     public static String volume = "volume";
     public static String channelListenerName = "channelListenerName";
+    public static String elapsedTimeEventName = "elapsedTimeEventName";
 
     // AdjustVolumeRequest
 //    public static String volume = "volume";
