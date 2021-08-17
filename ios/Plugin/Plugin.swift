@@ -41,7 +41,7 @@ public class Mixer: CAPPlugin {
      * @param call
      */
     @objc func requestMixerPermissions(_ call: CAPPluginCall) {
-        requestPermissions(call);
+        // TODO: implement requestPermissions()
         call.resolve(buildBaseResponse(wasSuccessful: false, message: "not implemented yet"))
     }
 
@@ -58,9 +58,9 @@ public class Mixer: CAPPlugin {
             return
         }
 
-        audioSessionListenerName = call.getString("audioSessionListenerName") ?? ""
-        let inputPortType = call.getString("inputPortType") ?? ""
-        let ioBufferDuration = call.getDouble("ioBufferDuration") ?? -1
+        audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName) ?? ""
+        let inputPortType = call.getString(RequestParameters.inputPortType) ?? ""
+        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration) ?? -1
 
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
@@ -96,9 +96,9 @@ public class Mixer: CAPPlugin {
             return
         }
 
-        let response = ["preferredInputPortType": audioSession.preferredInput?.portType as Any,
-                        "preferredInputPortName": audioSession.preferredInput?.portName as Any,
-                        "preferredIOBufferDuration": Float(audioSession.preferredIOBufferDuration)] as [String : Any]
+        let response = [ ResponseParameters.preferredInputPortType: audioSession.preferredInput?.portType as Any,
+                         ResponseParameters.preferredInputPortName: audioSession.preferredInput?.portName as Any,
+                         ResponseParameters.preferredIOBufferDuration: Float(audioSession.preferredIOBufferDuration)] as [String : Any]
         print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
         isAudioSessionActive = true
 
@@ -156,7 +156,7 @@ public class Mixer: CAPPlugin {
     // MARK: getAudioSessionPreferredInputPortType
     @objc func getAudioSessionPreferredInputPortType(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got preferred input", data: ["value": audioSession.preferredInput!.portType]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got preferred input", data: [ResponseParameters.value: audioSession.preferredInput!.portType]))
     }
 
     /**
@@ -179,8 +179,8 @@ public class Mixer: CAPPlugin {
     // MARK: initMicInput
     @objc func initMicInput(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        let audioId = call.getString("audioId") ?? ""
-        let channelNumber = call.getInt("channelNumber") ?? -1
+        let audioId = call.getString(RequestParameters.audioId) ?? ""
+        let channelNumber = call.getInt(RequestParameters.channelNumber) ?? -1
         if (channelNumber == -1) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "no channel number"))
             return
@@ -192,22 +192,22 @@ public class Mixer: CAPPlugin {
         let eqSettings: EqSettings = EqSettings()
         let channelSettings: ChannelSettings = ChannelSettings()
         
-        eqSettings.bassGain = call.getFloat("bassGain") ?? 0.0
-        eqSettings.bassFrequency = call.getFloat("bassFrequency") ?? 115.0
-        eqSettings.midGain = call.getFloat("midGain") ?? 0.0
-        eqSettings.midFrequency = call.getFloat("midFrequency") ?? 500.0
-        eqSettings.trebleGain = call.getFloat("trebleGain") ?? 0.0
-        eqSettings.trebleFrequency = call.getFloat("trebleFrequency") ?? 1500.0
+        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain) ?? 0.0
+        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency) ?? 115.0
+        eqSettings.midGain = call.getFloat(RequestParameters.midGain) ?? 0.0
+        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency) ?? 500.0
+        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain) ?? 0.0
+        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency) ?? 1500.0
         
-        channelSettings.volume = call.getFloat("volume") ?? 1.0
-        channelSettings.channelListenerName = call.getString("channelListenerName") ?? ""
+        channelSettings.volume = call.getFloat(RequestParameters.volume) ?? 1.0
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName) ?? ""
         channelSettings.eqSettings = eqSettings
         channelSettings.channelNumber = channelNumber
         
         micInputList[audioId] = MicInput(parent: self, audioId: audioId)
         
         micInputList[audioId]?.setupAudio(audioFilePath: NSURL(fileURLWithPath: ""), channelSettings: channelSettings)
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized", data: ["value": audioId]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "mic was successfully initialized", data: [ResponseParameters.value: audioId]))
     }
     
     /**
@@ -243,22 +243,22 @@ public class Mixer: CAPPlugin {
     // MARK: initAudioFile
     @objc func initAudioFile(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        let filePath = call.getString("filePath") ?? ""
-        let audioId = call.getString("audioId") ?? ""
+        let filePath = call.getString(RequestParameters.filePath) ?? ""
+        let audioId = call.getString(RequestParameters.audioId) ?? ""
         let eqSettings: EqSettings = EqSettings()
         let channelSettings: ChannelSettings = ChannelSettings()
         
-        eqSettings.bassGain = call.getFloat("bassGain") ?? 0.0
-        eqSettings.bassFrequency = call.getFloat("bassFrequency") ?? 115.0
-        eqSettings.midGain = call.getFloat("midGain") ?? 0.0
-        eqSettings.midFrequency = call.getFloat("midFrequency") ?? 500.0
-        eqSettings.trebleGain = call.getFloat("trebleGain") ?? 0.0
-        eqSettings.trebleFrequency = call.getFloat("trebleFrequency") ?? 1500.0
+        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain) ?? 0.0
+        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency) ?? 115.0
+        eqSettings.midGain = call.getFloat(RequestParameters.midGain) ?? 0.0
+        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency) ?? 500.0
+        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain) ?? 0.0
+        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency) ?? 1500.0
         
-        channelSettings.volume = call.getFloat("volume") ?? 1.0
-        channelSettings.channelListenerName = call.getString("channelListenerName") ?? ""
+        channelSettings.volume = call.getFloat(RequestParameters.volume) ?? 1.0
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName) ?? ""
         channelSettings.eqSettings = eqSettings
-        channelSettings.elapsedTimeEventName = call.getString("elapsedTimeEventName") ?? ""
+        channelSettings.elapsedTimeEventName = call.getString(RequestParameters.elapsedTimeEventName) ?? ""
         
         if (filePath.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "filePath not found"))
@@ -278,7 +278,7 @@ public class Mixer: CAPPlugin {
             let urlString = NSURL(string: scrubbedString)
             if (urlString != nil) {
                 audioFileList[audioId]!.setupAudio(audioFilePath: urlString!, channelSettings: channelSettings)
-                call.resolve(buildBaseResponse(wasSuccessful: true, message: "file is initialized", data: ["value": audioId]))
+                call.resolve(buildBaseResponse(wasSuccessful: true, message: "file is initialized", data: [ResponseParameters.value: audioId]))
             }
             else {
                 call.resolve(buildBaseResponse(wasSuccessful: false, message: "in initAudioFile, urlString invalid"))
@@ -313,7 +313,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "isPlaying") else {return}
         let result = audioFileList[audioId]!.isPlaying()
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "audio file is playing", data: ["value": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "audio file is playing", data: [ResponseParameters.value: result]))
     }
     
     /**
@@ -325,7 +325,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "play") else {return}
         let result = audioFileList[audioId]!.playOrPause()
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "playing or pausing playback", data: ["state": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "playing or pausing playback", data: [ResponseParameters.state: result]))
     }
     
     /**
@@ -337,7 +337,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "stop") else {return}
         let result = audioFileList[audioId]!.stop()
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "stopping playback", data: ["state": result]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "stopping playback", data: [ResponseParameters.state : result]))
     }
     
     /**
@@ -348,8 +348,8 @@ public class Mixer: CAPPlugin {
     @objc func adjustVolume(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "adjustVolume") else {return}
-        let volume = call.getFloat("volume") ?? -1.0
-        let inputType = call.getString("inputType") ?? ""
+        let volume = call.getFloat(RequestParameters.volume) ?? -1.0
+        let inputType = call.getString(RequestParameters.inputType) ?? ""
         
         if (volume.isLess(than: 0)) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "in adjustVolume - volume cannot be less than zero percent"))
@@ -376,7 +376,7 @@ public class Mixer: CAPPlugin {
     @objc func getCurrentVolume(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "getCurrentVolume") else {return}
-        let inputType = call.getString("inputType")
+        let inputType = call.getString(RequestParameters.inputType)
         var result: Float?
         if (inputType == "file") {
             result = audioFileList[audioId]?.getCurrentVolume()
@@ -388,7 +388,7 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "Could not find object at [audioId]"))
             return
         }
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "here is the current volume", data: ["volume": result ?? -1]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "here is the current volume", data: [ResponseParameters.volume: result ?? -1]))
     }
     
     /**
@@ -404,10 +404,10 @@ public class Mixer: CAPPlugin {
     @objc func adjustEq(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "adjustEq") else {return}
-        let filterType = call.getString("eqType") ?? ""
-        let gain = call.getFloat("gain") ?? -100.0
-        let freq = call.getFloat("frequency") ?? -1.0
-        let inputType = call.getString("inputType")
+        let filterType = call.getString(RequestParameters.eqType) ?? ""
+        let gain = call.getFloat(RequestParameters.gain) ?? -100.0
+        let freq = call.getFloat(RequestParameters.frequency) ?? -1.0
+        let inputType = call.getString(RequestParameters.inputType)
         
         if (filterType.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from adjustEq - filter type not specified"))
@@ -442,7 +442,7 @@ public class Mixer: CAPPlugin {
     @objc func getCurrentEq(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "getCurrentEq") else {return}
-        let inputType = call.getString("inputType")
+        let inputType = call.getString(RequestParameters.inputType)
         
         var result: [String: Float] = [:]
         if (inputType == "file") {
@@ -466,7 +466,7 @@ public class Mixer: CAPPlugin {
     @objc func setElapsedTimeEvent(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "setElapsedTimeEvent") else {return}
-        let eventName = call.getString("eventName") ?? ""
+        let eventName = call.getString(RequestParameters.eventName) ?? ""
         if (eventName.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from setElapsedTimeEvent - eventName not found"))
             return
@@ -508,7 +508,7 @@ public class Mixer: CAPPlugin {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         let channelCount = engine.inputNode.inputFormat(forBus: 0).channelCount;
         let deviceName = audioSession.preferredInput?.portName
-        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: ["channelCount": channelCount, "deviceName": deviceName ?? ""]))
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: [ResponseParameters.channelCount: channelCount, ResponseParameters.deviceName: deviceName ?? ""]))
     }
     
     /**
@@ -521,7 +521,7 @@ public class Mixer: CAPPlugin {
      */
     // MARK: getAudioId
     private func getAudioId(call: CAPPluginCall, functionName: String) -> String? {
-        let audioId = call.getString("audioId") ?? ""
+        let audioId = call.getString(RequestParameters.audioId) ?? ""
         if (audioId.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from \(functionName) - audioId not found"))
             return nil
@@ -543,10 +543,10 @@ public class Mixer: CAPPlugin {
     // MARK: buildBaseResponse
     private func buildBaseResponse(wasSuccessful: Bool, message: String, data: [String: Any] = [:]) -> [String: Any] {
         if (wasSuccessful) {
-            return ["status": "success", "message": message, "data": data]
+            return [ResponseParameters.status : "success", ResponseParameters.message: message, ResponseParameters.data: data]
         }
         else {
-            return ["status": "error", "message": message, "data": data]
+            return [ResponseParameters.status: "error", ResponseParameters.message: message, ResponseParameters.data: data]
         }
     }
     
@@ -764,7 +764,7 @@ public class Mixer: CAPPlugin {
             } else {
                 //An interruption ended. Don't resume playback.
             }
-            notifyListeners(audioSessionListenerName, data: ["handlerType": "INTERRUPT_ENDED"])
+            notifyListeners(audioSessionListenerName, data: [ "handlerType" : "INTERRUPT_ENDED"])
         default:
             ()
         }

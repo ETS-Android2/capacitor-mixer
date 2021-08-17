@@ -2,7 +2,7 @@
 //  MicInput.swift
 //  Plugin
 //
-//  Created by Austen Mack on 6/11/21.
+//  Created by Skylabs Technology on 6/11/21.
 //  Copyright © 2021 Max Lynch. All rights reserved.
 //
 
@@ -158,7 +158,7 @@ public class MicInput {
             let avgPower = 20 * log10(rms)
             let response = avgPower < -80 ? -80 : avgPower
 
-            self._parent.notifyListeners(self.listenerName, data: ["meterLevel": response])
+            self._parent.notifyListeners(self.listenerName, data: [ResponseParameters.meterLevel : response])
             
         }
     }
@@ -287,12 +287,12 @@ public class MicInput {
         let midEq = eq.bands[1]
         let trebleEq = eq.bands[2]
         
-        return ["bassGain": bassEq.gain,
-                "bassFrequency": bassEq.frequency,
-                "midGain": midEq.gain,
-                "midFrequency": midEq.frequency,
-                "trebleGain": trebleEq.gain,
-                "trebleFrequency": trebleEq.frequency]
+        return [ResponseParameters.bassGain: bassEq.gain,
+                ResponseParameters.bassFrequency: bassEq.frequency,
+                ResponseParameters.midGain: midEq.gain,
+                ResponseParameters.midFrequency: midEq.frequency,
+                ResponseParameters.trebleGain: trebleEq.gain,
+                ResponseParameters.trebleFrequency: trebleEq.frequency]
     }
     
     /** 
@@ -354,7 +354,7 @@ public class MicInput {
         micMixer.removeTap(onBus: 0)
         micInput?.removeTap(onBus: 0)
         engine.stop()
-        return ["listenerName": self.listenerName,
-                "elapsedTimeEventName": ""]
+        return [ResponseParameters.listenerName: self.listenerName,
+                ResponseParameters.elapsedTimeEventName: ""]
     }
 }

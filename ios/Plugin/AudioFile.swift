@@ -2,7 +2,7 @@
 //  AudioFile.swift
 //  Plugin
 //
-//  Created by Austen Mack on 5/20/21.
+//  Created by Skylabs Technology on 5/20/21.
 //  Copyright © 2021 Max Lynch. All rights reserved.
 //
 
@@ -114,7 +114,7 @@ public class AudioFile {
         }
 
         if (channelSettings.elapsedTimeEventName != "") {
-            setElapsedTimeEvent(channelSettings.elapsedTimeEventName)
+            setElapsedTimeEvent(eventName: channelSettings.elapsedTimeEventName!)
         }
         
         engine.connect(player, to: eq, format: format)
@@ -183,7 +183,7 @@ public class AudioFile {
         //          let meterLevel = self.scaledPower(power: avgPower)
                 let response = avgPower < -80 ? -80 : avgPower
 
-                self._parent.notifyListeners(self.listenerName, data: ["meterLevel": response])
+                self._parent.notifyListeners(self.listenerName, data: [ResponseParameters.meterLevel: response])
             
                 if (self.elapsedTimeEventName != "") {
                     self._parent.notifyListeners(self.elapsedTimeEventName, data: self.player.elapsedTimeSeconds.toDictionary())
@@ -314,12 +314,12 @@ public class AudioFile {
         let midEq = eq.bands[1]
         let trebleEq = eq.bands[2]
         
-        return ["bassGain": bassEq.gain,
-                "bassFrequency": bassEq.frequency,
-                "midGain": midEq.gain,
-                "midFrequency": midEq.frequency,
-                "trebleGain": trebleEq.gain,
-                "trebleFrequency": trebleEq.frequency]
+        return [ResponseParameters.bassGain: bassEq.gain,
+                ResponseParameters.bassFrequency: bassEq.frequency,
+                ResponseParameters.midGain: midEq.gain,
+                ResponseParameters.midFrequency: midEq.frequency,
+                ResponseParameters.trebleGain: trebleEq.gain,
+                ResponseParameters.trebleFrequency: trebleEq.frequency]
     }
     
     /**
@@ -358,8 +358,8 @@ public class AudioFile {
         engine.detach(player)
         engine.detach(eq)
         engine.detach(playerMixer)
-        return ["listenerName": self.listenerName,
-                "elapsedTimeEventName": self.elapsedTimeEventName]
+        return [ResponseParameters.listenerName: self.listenerName,
+                ResponseParameters.elapsedTimeEventName: self.elapsedTimeEventName]
     }
 }
 
@@ -376,10 +376,10 @@ extension TimeInterval{
         let hours = (time / 3600)
 
         return [
-            "milliSeconds": milliSeconds,
-            "seconds": seconds,
-            "minutes": minutes,
-            "hours": hours
+            ResponseParameters.milliSeconds: milliSeconds,
+            ResponseParameters.seconds: seconds,
+            ResponseParameters.minutes: minutes,
+            ResponseParameters.hours: hours
         ]
     }
 }
