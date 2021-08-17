@@ -38,7 +38,7 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
-  async play(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
+  async playOrPause(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
     console.log('ECHO', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: "play" } };
   }
