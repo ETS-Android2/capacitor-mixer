@@ -39,7 +39,7 @@ ext {
 * [`addListener(string, ...)`](#addlistenerstring-)
 * [`addListener(string, ...)`](#addlistenerstring-)
 * [`addListener(string, ...)`](#addlistenerstring-)
-* [`play(...)`](#play)
+* [`playOrPause(...)`](#playorpause)
 * [`stop(...)`](#stop)
 * [`isPlaying(...)`](#isplaying)
 * [`getCurrentVolume(...)`](#getcurrentvolume)
@@ -173,10 +173,10 @@ myListenerFunction(response: <a href="#volumemeterevent">VolumeMeterEvent</a>) {
 --------------------
 
 
-### play(...)
+### playOrPause(...)
 
 ```typescript
-play(request: BaseMixerRequest) => Promise<BaseResponse<PlaybackStateResponse>>
+playOrPause(request: BaseMixerRequest) => Promise<BaseResponse<PlaybackStateResponse>>
 ```
 
 Toggles playback and pause on an initialized audio file

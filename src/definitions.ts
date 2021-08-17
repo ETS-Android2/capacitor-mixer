@@ -564,7 +564,7 @@ export interface MixerPlugin {
    * Toggles playback and pause on an initialized audio file
    * @param request
    */
-  play(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>>;
+  playOrPause(request: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>>;
 
   /**
    * Stops playback on a playing audio file

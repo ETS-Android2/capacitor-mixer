@@ -320,7 +320,7 @@ public class Mixer: CAPPlugin {
      * Toggles playback and pause on an initialized audio file
      * @param call { audioId: String; }
      */
-    @objc func play(_ call: CAPPluginCall) {
+    @objc func playOrPause(_ call: CAPPluginCall) {
         // TODO: Return error to user when play is hit before choosing file
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "play") else {return}

@@ -338,7 +338,7 @@ public class Mixer extends Plugin {
      * @param call { String audioId; }
      */
     @PluginMethod
-    public void play(PluginCall call) {
+    public void playOrPause(PluginCall call) {
         if(!checkAudioSessionInit(call)) { return; }
         String audioId;
         if ((audioId = getAudioId(call, "play")) == null) { return; }
