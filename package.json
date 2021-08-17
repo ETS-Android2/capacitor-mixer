@@ -1,6 +1,6 @@
 {
   "name": "@skylabs_technology/capacitor-mixer",
-  "version": "0.9.2",
+  "version": "0.9.4",
   "description": "Mix audio files and microphones on your device using a USB audio interface.",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",

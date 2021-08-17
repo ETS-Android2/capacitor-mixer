@@ -500,19 +500,58 @@ export interface MixerPlugin {
   requestMixerPermissions(): Promise<BaseResponse<null>>;
 
   /**
-   * Adds listener for events 
-   * 
-   * Can be an AudioSessionEvent, MixerTimeEvent, or VolumeMeterEvent
+   * Adds listener for AudioSession events
    * 
    * Ex: 
    * 
-   * Register Listener: `Mixer.addListener("myEventName", this.myListenerFunction.bind(this))`
+   * Register Listener:
+   * ```
+   * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
    * 
-   * `myListenerFunction(response: AudioSessionEvent) { // handle event }`
+   * myListenerFunction(response: AudioSessionEvent) { 
+   *  // handle event 
+   * }
+   * ```
    * @param eventName 
    * @param listenerFunc 
    */
-  addListener(eventName: string, listenerFunc: Function): Promise<PluginListenerHandle> & PluginListenerHandle;
+  addListener(eventName: string, listenerFunc: (response: AudioSessionEvent) => void): Promise<PluginListenerHandle> & PluginListenerHandle;
+
+  /**
+   * Adds listener for audio track time update events
+   * 
+   * Ex: 
+   * 
+   * Register Listener: 
+   * ```
+   * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
+   * 
+   * myListenerFunction(response: MixerTimeEvent) { 
+   *  // handle event 
+   * }
+   * ```
+   * @param eventName 
+   * @param listenerFunc 
+   */
+  addListener(eventName: string, listenerFunc: (response: MixerTimeEvent) => void): Promise<PluginListenerHandle> & PluginListenerHandle;
+
+  /**
+   * Adds listener for volume metering update events
+   * 
+   * Ex: 
+   * 
+   * Register Listener: 
+   * ```
+   * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
+   * 
+   * myListenerFunction(response: AudioSessionEvent) { 
+   *  // handle event 
+   * }
+   * ```
+   * @param eventName 
+   * @param listenerFunc 
+   */
+  addListener(eventName: string, listenerFunc: (response: VolumeMeterEvent) => void): Promise<PluginListenerHandle> & PluginListenerHandle;
 
   /**
    * Toggles playback and pause on an initialized audio file
