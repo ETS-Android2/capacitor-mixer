@@ -512,7 +512,7 @@ export interface MixerPlugin {
    * Ex: 
    * 
    * Register Listener:
-   * ```
+   * ```typescript
    * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
    * 
    * myListenerFunction(response: AudioSessionEvent) { 
@@ -530,7 +530,7 @@ export interface MixerPlugin {
    * Ex: 
    * 
    * Register Listener: 
-   * ```
+   * ```typescript
    * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
    * 
    * myListenerFunction(response: MixerTimeEvent) { 
@@ -548,7 +548,7 @@ export interface MixerPlugin {
    * Ex: 
    * 
    * Register Listener: 
-   * ```
+   * ```typescript
    * Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
    * 
    * myListenerFunction(response: AudioSessionEvent) { 

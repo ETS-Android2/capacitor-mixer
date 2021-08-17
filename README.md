@@ -37,6 +37,8 @@ ext {
 
 * [`requestMixerPermissions()`](#requestmixerpermissions)
 * [`addListener(string, ...)`](#addlistenerstring-)
+* [`addListener(string, ...)`](#addlistenerstring-)
+* [`addListener(string, ...)`](#addlistenerstring-)
 * [`play(...)`](#play)
 * [`stop(...)`](#stop)
 * [`isPlaying(...)`](#isplaying)
@@ -57,6 +59,7 @@ ext {
 * [`destroyMicInput(...)`](#destroymicinput)
 * [`destroyAudioFile(...)`](#destroyaudiofile)
 * [Interfaces](#interfaces)
+* [Type Aliases](#type-aliases)
 * [Enums](#enums)
 
 </docgen-index>
@@ -86,23 +89,84 @@ See README for additional information on permissions
 ### addListener(string, ...)
 
 ```typescript
-addListener(eventName: string, listenerFunc: Function) => Promise<PluginListenerHandle> & PluginListenerHandle
+addListener(eventName: string, listenerFunc: (response: AudioSessionEvent) => void) => Promise<PluginListenerHandle> & PluginListenerHandle
 ```
 
-Adds listener for events 
-
-Can be an AudioSessionEvent, MixerTimeEvent, or VolumeMeterEvent
+Adds listener for AudioSession events
 
 Ex: 
 
-Register Listener: `Mixer.addListener("myEventName", this.myListenerFunction.bind(this))`
+Register Listener:
+```typescript
+Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
 
-`myListenerFunction(response: AudioSessionEvent) { // handle event }`
+myListenerFunction(response: <a href="#audiosessionevent">AudioSessionEvent</a>) { 
+ // handle event 
+}
+```
 
-| Param              | Type                                          |
-| ------------------ | --------------------------------------------- |
-| **`eventName`**    | <code>string</code>                           |
-| **`listenerFunc`** | <code><a href="#function">Function</a></code> |
+| Param              | Type                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>string</code>                                                                    |
+| **`listenerFunc`** | <code>(response: <a href="#audiosessionevent">AudioSessionEvent</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt; & <a href="#pluginlistenerhandle">PluginListenerHandle</a></code>
+
+--------------------
+
+
+### addListener(string, ...)
+
+```typescript
+addListener(eventName: string, listenerFunc: (response: MixerTimeEvent) => void) => Promise<PluginListenerHandle> & PluginListenerHandle
+```
+
+Adds listener for audio track time update events
+
+Ex: 
+
+Register Listener: 
+```typescript
+Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
+
+myListenerFunction(response: <a href="#mixertimeevent">MixerTimeEvent</a>) { 
+ // handle event 
+}
+```
+
+| Param              | Type                                                                                   |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| **`eventName`**    | <code>string</code>                                                                    |
+| **`listenerFunc`** | <code>(response: <a href="#mixertimeresponse">MixerTimeResponse</a>) =&gt; void</code> |
+
+**Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt; & <a href="#pluginlistenerhandle">PluginListenerHandle</a></code>
+
+--------------------
+
+
+### addListener(string, ...)
+
+```typescript
+addListener(eventName: string, listenerFunc: (response: VolumeMeterEvent) => void) => Promise<PluginListenerHandle> & PluginListenerHandle
+```
+
+Adds listener for volume metering update events
+
+Ex: 
+
+Register Listener: 
+```typescript
+Mixer.addListener("myEventName", this.myListenerFunction.bind(this));
+
+myListenerFunction(response: <a href="#audiosessionevent">AudioSessionEvent</a>) { 
+ // handle event 
+}
+```
+
+| Param              | Type                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| **`eventName`**    | <code>string</code>                                                                  |
+| **`listenerFunc`** | <code>(response: <a href="#volumemeterevent">VolumeMeterEvent</a>) =&gt; void</code> |
 
 **Returns:** <code>Promise&lt;<a href="#pluginlistenerhandle">PluginListenerHandle</a>&gt; & <a href="#pluginlistenerhandle">PluginListenerHandle</a></code>
 
@@ -251,7 +315,10 @@ Adjusts gain and frequency in bass, mid, and treble ranges for a channel
 setElapsedTimeEvent(request: SetEventRequest) => Promise<BaseResponse<null>>
 ```
 
-Sets an elapsed time event name for a given audioId. Only applicable for audio files
+Sets an elapsed time event name for a given audioId. To unset elapsedTimeEvent 
+pass an empty string and this will stop the event from being triggered.
+
+Only applicable for audio files
 
 | Param         | Type                                                        |
 | ------------- | ----------------------------------------------------------- |
@@ -396,7 +463,7 @@ destroyMicInput(request: BaseMixerRequest) => Promise<BaseResponse<DestroyRespon
 
 De-initializes a mic input channel based on audioId
 
-<span style="color:red">Note: Once destroyed, the channel cannot be recovered</span>
+Note: Once destroyed, the channel cannot be recovered
 
 | Param         | Type                                                          | Description |
 | ------------- | ------------------------------------------------------------- | ----------- |
@@ -415,7 +482,7 @@ destroyAudioFile(request: BaseMixerRequest) => Promise<BaseResponse<DestroyRespo
 
 De-initializes an audio file channel based on audioId
 
-<span style="color:red">Note: Once destroyed, the channel cannot be recovered</span>
+Note: Once destroyed, the channel cannot be recovered
 
 | Param         | Type                                                          | Description |
 | ------------- | ------------------------------------------------------------- | ----------- |
@@ -426,7 +493,7 @@ De-initializes an audio file channel based on audioId
 --------------------
 
 
-## Interfaces
+### Interfaces
 
 
 #### BaseResponse
@@ -445,6 +512,37 @@ The response wrapper for all response objects
 | Prop         | Type                                      |
 | ------------ | ----------------------------------------- |
 | **`remove`** | <code>() =&gt; Promise&lt;void&gt;</code> |
+
+
+#### AudioSessionEvent
+
+Event response for handling audio session notifications
+
+| Prop              | Type                                                                          | Description                  |
+| ----------------- | ----------------------------------------------------------------------------- | ---------------------------- |
+| **`handlerType`** | <code><a href="#audiosessionhandlertypes">AudioSessionHandlerTypes</a></code> | The event type that occurred |
+
+
+#### MixerTimeResponse
+
+Response representing HH:MM:SS.ms-formatted time
+
+| Prop               | Type                | Description          |
+| ------------------ | ------------------- | -------------------- |
+| **`milliSeconds`** | <code>number</code> | ms in formatted time |
+| **`seconds`**      | <code>number</code> | SS in formatted time |
+| **`minutes`**      | <code>number</code> | MM in formatted time |
+| **`hours`**        | <code>number</code> | HH in formatted time |
+
+
+#### VolumeMeterEvent
+
+Event response for handling current volume level
+
+| Prop             | Type                | Description                                     |
+| ---------------- | ------------------- | ----------------------------------------------- |
+| **`meterLevel`** | <code>number</code> | Calculated amplitude in dB - Range: -80 to 0 dB |
+
 
 #### PlaybackStateResponse
 
@@ -518,18 +616,19 @@ Response for initialization of channel
 
 Request used to initialize a channel on the mixer
 
-| Prop                      | Type                | Description                                                                                                                                                            |
-| ------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`filePath`**            | <code>string</code> | A string identifying the path to the audio file on device. Unused if initializing microphone channel                                                                   |
-| **`channelNumber`**       | <code>number</code> | The channel number being initialized for microphone. Unused if initializing audio file                                                                                 |
-| **`bassGain`**            | <code>number</code> | Optional bass gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                            |
-| **`bassFrequency`**       | <code>number</code> | Optional init eq setting for bass EQ band iOS Default: 115Hz Android Default: 200Hz                                                                                    |
-| **`midGain`**             | <code>number</code> | Optional mid gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                             |
-| **`midFrequency`**        | <code>number</code> | Optional init setting for mid EQ band iOS Default: 500Hz Android Default: 1499Hz                                                                                       |
-| **`trebleGain`**          | <code>number</code> | Optional treble gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                          |
-| **`trebleFrequency`**     | <code>number</code> | Optional init eq setting for treble EQ band iOS Default: 1.5kHz Android Default: 20kHz                                                                                 |
-| **`volume`**              | <code>number</code> | Optional init setting for volume Default: 1 Range: 0 - 1                                                                                                               |
-| **`channelListenerName`** | <code>string</code> | Required name used to set listener for volume metering Subscribed event returns VolumeMeterEvent Note: if empty string is passed, metering will be disabled on channel |
+| Prop                       | Type                | Description                                                                                                                                                              |
+| -------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`filePath`**             | <code>string</code> | A string identifying the path to the audio file on device. Unused if initializing microphone channel                                                                     |
+| **`elapsedTimeEventName`** | <code>string</code> | A string identifying the elapsed time event name. This will automatically set the event and setElapsedTimeEvent is not needed. Unused if initializing microphone channel |
+| **`channelNumber`**        | <code>number</code> | The channel number being initialized for microphone. Unused if initializing audio file                                                                                   |
+| **`bassGain`**             | <code>number</code> | Optional bass gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                              |
+| **`bassFrequency`**        | <code>number</code> | Optional init eq setting for bass EQ band iOS Default: 115Hz Android Default: 200Hz                                                                                      |
+| **`midGain`**              | <code>number</code> | Optional mid gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                               |
+| **`midFrequency`**         | <code>number</code> | Optional init setting for mid EQ band iOS Default: 500Hz Android Default: 1499Hz                                                                                         |
+| **`trebleGain`**           | <code>number</code> | Optional treble gain setting for initialization: -36dB to +15 dB Default: 0dB                                                                                            |
+| **`trebleFrequency`**      | <code>number</code> | Optional init eq setting for treble EQ band iOS Default: 1.5kHz Android Default: 20kHz                                                                                   |
+| **`volume`**               | <code>number</code> | Optional init setting for volume Default: 1 Range: 0 - 1                                                                                                                 |
+| **`channelListenerName`**  | <code>string</code> | Required name used to set listener for volume metering Subscribed event returns VolumeMeterEvent Note: if empty string is passed, metering will be disabled on channel   |
 
 
 #### AdjustVolumeRequest
@@ -558,21 +657,9 @@ For mixer requests manipulating EQ
 
 Request to set an event listener
 
-| Prop            | Type                | Description                                                                              |
-| --------------- | ------------------- | ---------------------------------------------------------------------------------------- |
-| **`eventName`** | <code>string</code> | The name of the event that will be subscribed to Subscribed event returns MixerTimeEvent |
-
-
-#### MixerTimeResponse
-
-Response representing HH:MM:SS.ms-formatted time
-
-| Prop               | Type                | Description          |
-| ------------------ | ------------------- | -------------------- |
-| **`milliSeconds`** | <code>number</code> | ms in formatted time |
-| **`seconds`**      | <code>number</code> | SS in formatted time |
-| **`minutes`**      | <code>number</code> | MM in formatted time |
-| **`hours`**        | <code>number</code> | HH in formatted time |
+| Prop            | Type                | Description                                                                                                            |
+| --------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **`eventName`** | <code>string</code> | The name of the event that will be subscribed to Subscribed event returns <a href="#mixertimeevent">MixerTimeEvent</a> |
 
 
 #### ChannelCountResponse
@@ -600,11 +687,11 @@ Response for initalizing audio session
 
 Request to initialize an audio session
 
-| Prop                           | Type                                                                  | Description                                                                                                                          |
-| ------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **`inputPortType`**            | <code><a href="#audiosessionporttype">AudioSessionPortType</a></code> | An enum describing input hardware device to be used                                                                                  |
-| **`ioBufferDuration`**         | <code>number</code>                                                   | iOS only The preferred duration of the input buffer (0.05 recommended as a starting point, change may be observed as output latency) |
-| **`audioSessionListenerName`** | <code>string</code>                                                   | The name of the audio session event that will be subscribed to. Subscribed event returns AudioSessionEvent                           |
+| Prop                           | Type                                                                  | Description                                                                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`inputPortType`**            | <code><a href="#audiosessionporttype">AudioSessionPortType</a></code> | An enum describing input hardware device to be used                                                                                         |
+| **`ioBufferDuration`**         | <code>number</code>                                                   | iOS only The preferred duration of the input buffer (0.05 recommended as a starting point, change may be observed as output latency)        |
+| **`audioSessionListenerName`** | <code>string</code>                                                   | The name of the audio session event that will be subscribed to. Subscribed event returns <a href="#audiosessionevent">AudioSessionEvent</a> |
 
 
 #### DestroyResponse
@@ -616,6 +703,17 @@ Response for destroying a channel
 | **`listenerName`**         | <code>string</code> | The name of the volume metering event Note: If no event is found, empty string is returned |
 | **`elapsedTimeEventName`** | <code>string</code> | The name of the elapsed time event Note: If no event is found, empty string is returned    |
 
+
+### Type Aliases
+
+
+#### MixerTimeEvent
+
+Event response for handling current elapsed time
+
+<code><a href="#mixertimeresponse">MixerTimeResponse</a></code>
+
+
 #### PlayerState
 
 Possible states of player
@@ -623,7 +721,7 @@ Possible states of player
 <code>"play" | "pause" | "stop" | "not implemented"</code>
 
 
-## Enums
+### Enums
 
 
 #### ResponseStatus
@@ -632,6 +730,17 @@ Possible states of player
 | ------------- | ---------------------- |
 | **`SUCCESS`** | <code>"success"</code> |
 | **`ERROR`**   | <code>"error"</code>   |
+
+
+#### AudioSessionHandlerTypes
+
+| Members                         | Value                                    | Description                                                                                                                 |
+| ------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **`INTERRUPT_BEGAN`**           | <code>"INTERRUPT_BEGAN"</code>           | Invoked when another audio session has started This can cause your audio to be 'ducked', or silenced with the audio session |
+| **`INTERRUPT_ENDED`**           | <code>"INTERRUPT_ENDED"</code>           | Invoked when another audio session has ended Your audio session should resume                                               |
+| **`ROUTE_DEVICE_DISCONNECTED`** | <code>"ROUTE_DEVICE_DISCONNECTED"</code> | Invoked when the device you're currently connected to is disconnected from the audio session                                |
+| **`ROUTE_DEVICE_RECONNECTED`**  | <code>"ROUTE_DEVICE_RECONNECTED"</code>  | Invoked when previously-used device is reconnected to the audio session                                                     |
+| **`ROUTE_NEW_DEVICE_FOUND`**    | <code>"ROUTE_NEW_DEVICE_FOUND"</code>    | Invoked when previously-UNUSED device is connected to the audio session                                                     |
 
 
 #### InputType
