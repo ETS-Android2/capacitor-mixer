@@ -34,32 +34,32 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
   }
 
   async requestMixerPermissions(): Promise<BaseResponse<null>> {
-    console.log('request mixer permission');
+    console.log('not implemented');
     return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
   async playOrPause(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
-    console.log('ECHO', options);
+    console.log('not implemented', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: "play" } };
   }
 
   async stop(options: BaseMixerRequest): Promise<BaseResponse<PlaybackStateResponse>> {
-    console.log('boi', options);
+    console.log('not implemented', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { state: "stop" } };
   }
 
   async isPlaying(options: BaseMixerRequest): Promise<BaseResponse<IsPlayingResponse>> {
-    console.log('areyouplaying?', options);
+    console.log('not implemented', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: true } };
   }
 
   async getCurrentVolume(options: ChannelPropertyRequest): Promise<BaseResponse<VolumeResponse>> {
-    console.log('how loud is it?', options);
+    console.log('not implemented', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { volume: -1 } };
   }
 
   async getCurrentEq(options: ChannelPropertyRequest): Promise<BaseResponse<EqResponse>> {
-    console.log('tell us about eq', options);
+    console.log('not implemented', options);
     return {
       status: ResponseStatus.ERROR, message: "not implemented", data: {
         bassGain: -1, bassFrequency: -1,
