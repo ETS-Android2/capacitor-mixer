@@ -1,6 +1,6 @@
 {
   "name": "@skylabs_technology/capacitor-mixer",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "description": "Mix audio files and microphones on your device using a USB audio interface.",
   "main": "dist/plugin.js",
   "module": "dist/esm/index.js",
@@ -23,13 +23,13 @@
     "prepublishOnly": "npm run build",
     "contribute-start": "npm i && npm run build"
   },
-  "author": "Skylabs Technology",
+  "author": "Skylabs Technology LLC.",
   "license": "MIT",
   "devDependencies": {
-    "@capacitor/android": "^3.1.2",
-    "@capacitor/core": "^3.1.2",
+    "@capacitor/android": "^3.2.0",
+    "@capacitor/core": "^3.2.0",
     "@capacitor/docgen": "0.0.17",
-    "@capacitor/ios": "^3.1.2",
+    "@capacitor/ios": "^3.2.0",
     "@ionic/eslint-config": "^0.3.0",
     "@ionic/prettier-config": "^1.0.0",
     "@ionic/swiftlint-config": "^1.0.0",
@@ -77,6 +77,6 @@
     "url": "https://github.com/SkylabsTechnology/capacitor-mixer/issues"
   },
   "dependencies": {
-    "@capacitor/cli": "^3.1.2"
+    "@capacitor/cli": "^3.2.0"
   }
 }
