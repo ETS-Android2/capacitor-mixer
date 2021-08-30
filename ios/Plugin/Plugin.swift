@@ -60,7 +60,7 @@ public class Mixer: CAPPlugin {
 
         audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName) ?? ""
         let inputPortType = call.getString(RequestParameters.inputPortType) ?? ""
-        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration) ?? -1
+        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration) ?? 0.05
 
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
