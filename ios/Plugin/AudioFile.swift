@@ -353,6 +353,9 @@ public class AudioFile {
      */
     // MARK: Destroy
     public func destroy() -> [String : String] {
+        if(player.isPlaying){
+            player.stop()
+        }
         playerMixer.removeTap(onBus: 0)
         
         engine.detach(player)

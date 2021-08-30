@@ -351,6 +351,9 @@ public class MicInput {
      */
     // MARK: Destroy
     public func destroy() -> [String : String] {
+        if(ioPlayer.isPlaying){
+            ioPlayer.stop()
+        }
         micMixer.removeTap(onBus: 0)
         micInput?.removeTap(onBus: 0)
         engine.stop()

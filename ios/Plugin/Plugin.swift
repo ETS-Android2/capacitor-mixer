@@ -129,18 +129,18 @@ public class Mixer: CAPPlugin {
      */
     // MARK: resetPlugin
     @objc func resetPlugin(_ call: CAPPluginCall) {
+        audioFileList.forEach { (key: String, value: AudioFile) in
+            _ = value.destroy()
+        }
+        micInputList.forEach { (key: String, value: MicInput) in
+            _ = value.destroy()
+        }
         do {
             try audioSession.setActive(false)
             isAudioSessionActive = false
         } catch let error {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "ERROR deinitializing audio session with exception: \(error)"))
             return
-        }
-        audioFileList.forEach { (key: String, value: AudioFile) in
-            _ = value.destroy()
-        }
-        micInputList.forEach { (key: String, value: MicInput) in
-            _ = value.destroy()
         }
         audioFileList = [:]
         micInputList = [:]
