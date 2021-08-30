@@ -27,7 +27,7 @@ public class Mixer: CAPPlugin {
         // registerForMediaServicesWereLost()
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
-            try audioSession.setPreferredIOBufferDuration(0.005)
+            try audioSession.setPreferredIOBufferDuration(0.05)
             try audioSession.setActive(true)
             try audioSession.setActive(false)
         } catch {
