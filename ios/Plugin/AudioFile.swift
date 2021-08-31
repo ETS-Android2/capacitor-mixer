@@ -284,17 +284,17 @@ public class AudioFile {
         case "bass":
             let bassEq = eq.bands[0]
             bassEq.gain = gain
-            bassEq.frequency = freq.isEqual(to: -1.0) ? bassEq.frequency : freq
+            bassEq.frequency = freq.isEqual(to: -1) ? bassEq.frequency : freq
             break;
         case "mid":
             let midEq = eq.bands[1]
             midEq.gain = gain
-            midEq.frequency = freq.isEqual(to: -1.0) ? midEq.frequency : freq
+            midEq.frequency = freq.isEqual(to: -1) ? midEq.frequency : freq
             break;
         case "treble":
             let trebleEq = eq.bands[2]
             trebleEq.gain = gain
-            trebleEq.frequency = freq.isEqual(to: -1.0) ? trebleEq.frequency : freq
+            trebleEq.frequency = freq.isEqual(to: -1) ? trebleEq.frequency : freq
             break;
         default:
             print("adjustEq: invalid eq type")
