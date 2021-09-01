@@ -35,13 +35,9 @@ public class MicInput {
     init(parent: Mixer, audioId: String){
         _parent = parent
         //        engine = _parent.engine
-        micInputQueue = DispatchQueue(label: "mixerPlugin.micInput.queue.\(audioId)", qos: .userInitiated);
-        meterQueue = DispatchQueue(label: "mixerPlugin.micMeter.queue.\(audioId)", qos: .userInitiated);
+        micInputQueue = DispatchQueue(label: "mixerPlugin.micInput.queue.\(audioId)", qos: .userInteractive);
+        meterQueue = DispatchQueue(label: "mixerPlugin.micMeter.queue.\(audioId)", qos: .userInteractive);
         toFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 44100.0, channels: 1, interleaved: true)!
-    }
-    
-    deinit {
-        print("We are being disposed")
     }
     
     /**
@@ -126,7 +122,7 @@ public class MicInput {
         self.ioPlayer.play();
         micInput!.installTap(onBus: 0, bufferSize: 512, format: micFormat, block: handleInputBuffer)
       } catch {
-        print("Error starting the player: \(error.localizedDescription)")
+        // print("Error starting the player: \(error.localizedDescription)")
       }
     }
     
@@ -257,19 +253,19 @@ public class MicInput {
             let bassEq = eq.bands[0]
             bassEq.gain = gain
             bassEq.frequency = freq.isEqual(to: -1) ? bassEq.frequency : freq
-            break;
+            break
         case "mid":
             let midEq = eq.bands[1]
             midEq.gain = gain
             midEq.frequency = freq.isEqual(to: -1) ? midEq.frequency : freq
-            break;
+            break
         case "treble":
             let trebleEq = eq.bands[2]
             trebleEq.gain = gain
             trebleEq.frequency = freq.isEqual(to: -1) ? trebleEq.frequency : freq
-            break;
-        default:
-            print("adjustEq: invalid eq type")
+            break
+        default: break
+            // print("adjustEq: invalid eq type")
         }
     }
     
@@ -339,8 +335,8 @@ public class MicInput {
             try engine.start()
             micInput!.installTap(onBus: 0, bufferSize: 512, format: micInput!.outputFormat(forBus: 0), block: handleInputBuffer)
             ioPlayer.play()
-        } catch let error {
-            print("Error resuming from interrupt with error: \(error)")
+        } catch _ {
+            // print("Error resuming from interrupt with error: \(error)")
         }
     }
     

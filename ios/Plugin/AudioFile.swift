@@ -56,7 +56,7 @@ public class AudioFile {
         
         setupEq(with: format, channelSettings: channelSettings)
       } catch {
-        print("Error reading the audio file: \(error.localizedDescription)")
+        // print("Error reading the audio file: \(error.localizedDescription)")
       }
     }
     
@@ -129,7 +129,7 @@ public class AudioFile {
         scheduleAudioFile()
 //        isPlayerReady = true
       } catch {
-        print("Error starting the player: \(error.localizedDescription)")
+        // print("Error starting the player: \(error.localizedDescription)")
       }
     }
     
@@ -296,8 +296,8 @@ public class AudioFile {
             trebleEq.gain = gain
             trebleEq.frequency = freq.isEqual(to: -1) ? trebleEq.frequency : freq
             break;
-        default:
-            print("adjustEq: invalid eq type")
+        default: break
+            // print("adjustEq: invalid eq type")
         }
     }
     

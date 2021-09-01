@@ -31,7 +31,7 @@ public class Mixer: CAPPlugin {
             try audioSession.setActive(true)
             try audioSession.setActive(false)
         } catch {
-            print("Problem initializing audio session")
+            // print("Problem initializing audio session")
         }
     }
 
@@ -74,7 +74,7 @@ public class Mixer: CAPPlugin {
             return
         }
         if let inputDesc = audioSession.availableInputs?.first(where: {(desc) -> Bool in
-            print("Available Input: ", desc)
+            // print("Available Input: ", desc)
             return determineAudioSessionPortDescription(desc: desc, type: inputPortType)
         }) {
             do {
@@ -82,24 +82,24 @@ public class Mixer: CAPPlugin {
             } catch let error {
                 isAudioSessionActive = false
                 call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
-                print(error)
+                // print(error)
                 return
             }
         }
         do {
             try audioSession.setActive(true)
-            print("Current route is: \(audioSession.currentRoute)")
+            // print("Current route is: \(audioSession.currentRoute)")
         } catch let error {
             isAudioSessionActive = false
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "There was a problem initializing your audio session with exception: \(error)"))
-            print(error)
+            // print(error)
             return
         }
 
         let response = [ ResponseParameters.preferredInputPortType: audioSession.preferredInput?.portType as Any,
                          ResponseParameters.preferredInputPortName: audioSession.preferredInput?.portName as Any,
                          ResponseParameters.preferredIOBufferDuration: Float(audioSession.preferredIOBufferDuration)] as [String : Any]
-        print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
+        // print("preferredIOBufferDuration: ", audioSession.preferredIOBufferDuration)
         isAudioSessionActive = true
 
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "successfully initialized audio session", data: response))
@@ -667,9 +667,9 @@ public class Mixer: CAPPlugin {
      * Registers handleServiceReset() as callback
      */
     // MARK: registerForMediaServicesWereReset
-    private func registerForMediaServicesWereReset() {
-        nc.addObserver(self, selector: #selector(handleServiceReset), name: AVAudioSession.mediaServicesWereResetNotification, object: audioSession)
-    }
+//    private func registerForMediaServicesWereReset() {
+//        nc.addObserver(self, selector: #selector(handleServiceReset), name: AVAudioSession.mediaServicesWereResetNotification, object: audioSession)
+//    }
     
     /**
      * Creates observer for when media services are lost
@@ -677,9 +677,9 @@ public class Mixer: CAPPlugin {
      * Registers handleServiceLost() as callback
      */
     // MARK: registerForMediaServicesWereLost
-    private func registerForMediaServicesWereLost() {
-        nc.addObserver(self, selector: #selector(handleServiceLost), name: AVAudioSession.mediaServicesWereLostNotification, object: audioSession)
-    }
+//    private func registerForMediaServicesWereLost() {
+//        nc.addObserver(self, selector: #selector(handleServiceLost), name: AVAudioSession.mediaServicesWereLostNotification, object: audioSession)
+//    }
     
     /**
      * Callback for media route change
@@ -691,37 +691,37 @@ public class Mixer: CAPPlugin {
     // MARK: handleRouteChange
     @objc func handleRouteChange(notification: Notification) {
         DispatchQueue.main.async {
-        print("handleRouteChange occurred with notification: \(notification)")
+        // print("handleRouteChange occurred with notification: \(notification)")
         guard let userInfo = notification.userInfo,
               let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue)
         else {return}
         switch reason {
             case .oldDeviceUnavailable:
-                print("Old device unavailable")
+                // print("Old device unavailable")
                 self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": "ROUTE_DEVICE_DISCONNECTED"])
                 self.micInputList.forEach { (key: String, value: MicInput) in
                     value.interrupt()
                 }
             case .newDeviceAvailable:
-                print("New device is available!")
+                // print("New device is available!")
                 self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": "ROUTE_DEVICE_RECONNECTED"])
                 self.micInputList.forEach { (key: String, value: MicInput) in
                     value.resumeFromInterrupt()
                 }
-            case .routeConfigurationChange:
-                print("Route has changed")
-                self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": ""])
-            case .noSuitableRouteForCategory:
-                print("No suitable route for category.")
-            case .override:
-                print("Route overridden")
-            case .categoryChange:
-                print("Category has changed.")
-            case .unknown:
-                print("route changed, unknown reason")
-            case .wakeFromSleep:
-                print("route changed, wake from sleep")
+            // case .routeConfigurationChange:
+                // print("Route has changed")
+                // self.notifyListeners(self.audioSessionListenerName, data: ["handlerType": ""])
+            // case .noSuitableRouteForCategory:
+                // print("No suitable route for category.")
+            // case .override:
+                // print("Route overridden")
+            // case .categoryChange:
+                // print("Category has changed.")
+            // case .unknown:
+                // print("route changed, unknown reason")
+            // case .wakeFromSleep:
+                // print("route changed, wake from sleep")
             default:
                 ()
             }
@@ -744,7 +744,7 @@ public class Mixer: CAPPlugin {
         
         switch type {
         case .began:
-            print("AudioSession interrupted!")
+            // print("AudioSession interrupted!")
             audioFileList.forEach{ (key: String, value: AudioFile) in
                 if (value.isPlaying()) {
                     value.player.pause()
@@ -753,7 +753,7 @@ public class Mixer: CAPPlugin {
             }
             notifyListeners(audioSessionListenerName, data: ["handlerType": "INTERRUPT_BEGAN"])
         case .ended:
-            print("AudioSession resuming...")
+            // print("AudioSession resuming...")
             guard let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {return}
             let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
             if (options.contains(.shouldResume)) {
@@ -774,20 +774,20 @@ public class Mixer: CAPPlugin {
      * Internal log for service resets
      */
     // MARK: handleServiceReset
-    @objc func handleServiceReset(notification: Notification) {
-//        guard let userInfo = notification.userInfo,
-//              let typeValue = userInfo[AVAudioSession] as? UInt,
-//              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
-//        else {return}
-        print("From handleServiceReset - Notification is: \(notification)")
-    }
+//    @objc func handleServiceReset(notification: Notification) {
+////        guard let userInfo = notification.userInfo,
+////              let typeValue = userInfo[AVAudioSession] as? UInt,
+////              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+////        else {return}
+//        // print("From handleServiceReset - Notification is: \(notification)")
+//    }
     
     /**
      * Internal log for losing service
      */
     // MARK: handleServiceLost
-    @objc func handleServiceLost(notification: Notification) {
-        print("From handleServiceLost - Notification is: \(notification)")
-    }
+//    @objc func handleServiceLost(notification: Notification) {
+//        // print("From handleServiceLost - Notification is: \(notification)")
+//    }
     
 }

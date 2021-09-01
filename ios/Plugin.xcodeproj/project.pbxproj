@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		03FC29A292ACC40490383A1F /* Pods_Plugin.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3B2A61DA5A1F2DD4F959604D /* Pods_Plugin.framework */; };
 		20C0B05DCFC8E3958A738AF2 /* Pods_PluginTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F6753A823D3815DB436415E3 /* Pods_PluginTests.framework */; };
-		2B31D83D268BBC3C002259F6 /* InputBufferData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B31D83C268BBC3C002259F6 /* InputBufferData.swift */; };
 		2B6BE2CF26C7294A0023F970 /* RequestParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BE2CE26C7294A0023F970 /* RequestParameters.swift */; };
 		2B6BE2D126C72A480023F970 /* ResponseParameters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6BE2D026C72A480023F970 /* ResponseParameters.swift */; };
 		50ADFF92201F53D600D50D53 /* Plugin.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50ADFF88201F53D600D50D53 /* Plugin.framework */; };
@@ -35,7 +34,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		2B31D83C268BBC3C002259F6 /* InputBufferData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputBufferData.swift; sourceTree = "<group>"; };
 		2B6BE2CE26C7294A0023F970 /* RequestParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestParameters.swift; sourceTree = "<group>"; };
 		2B6BE2D026C72A480023F970 /* ResponseParameters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResponseParameters.swift; sourceTree = "<group>"; };
 		3B2A61DA5A1F2DD4F959604D /* Pods_Plugin.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Plugin.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -113,7 +111,6 @@
 				59F10A3F2669634400B44BF5 /* EqSettings.swift */,
 				59DB6C2E2673FD5300F7BC0D /* MicInput.swift */,
 				59A48D95267A94FD0098AF17 /* ChannelSettings.swift */,
-				2B31D83C268BBC3C002259F6 /* InputBufferData.swift */,
 				2B6BE2CE26C7294A0023F970 /* RequestParameters.swift */,
 				2B6BE2D026C72A480023F970 /* ResponseParameters.swift */,
 			);
@@ -336,7 +333,6 @@
 				50E1A94820377CB70090CE1A /* Plugin.swift in Sources */,
 				59F10A402669634400B44BF5 /* EqSettings.swift in Sources */,
 				2B6BE2D126C72A480023F970 /* ResponseParameters.swift in Sources */,
-				2B31D83D268BBC3C002259F6 /* InputBufferData.swift in Sources */,
 				59DB6C2F2673FD5300F7BC0D /* MicInput.swift in Sources */,
 				59A48D96267A94FD0098AF17 /* ChannelSettings.swift in Sources */,
 				50ADFFA82020EE4F00D50D53 /* Plugin.m in Sources */,
