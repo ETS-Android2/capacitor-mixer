@@ -58,4 +58,8 @@ public class ResponseParameters {
     static var preferredInputPortType: String = "preferredInputPortType";
     static var preferredInputPortName: String = "preferredInputPortName";
     static var preferredIOBufferDuration: String = "preferredIOBufferDuration";
+    
+    // FileValidationResponse
+    static var isFileValid: String = "isFileValid";
+    static var filePath: String = "filePath";
 }

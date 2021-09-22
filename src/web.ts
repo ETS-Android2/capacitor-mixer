@@ -18,7 +18,9 @@ import type {
   VolumeResponse,
   DestroyResponse,
   InitAudioSessionResponse,
-  InitAudioSessionRequest
+  InitAudioSessionRequest,
+  FileValidationRequest,
+  FileValidationResponse
 } from './definitions';
 import {
   AudioSessionPortType,
@@ -99,8 +101,6 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { listenerName: "", elapsedTimeEventName: "" } };
   }
 
-
-
   async initAudioFile(options: InitChannelRequest): Promise<BaseResponse<InitResponse>> {
     console.log('Not Implemented', options);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { value: `${options.filePath} ${options.audioId}` } };
@@ -139,6 +139,11 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
   async getInputChannelCount(): Promise<BaseResponse<ChannelCountResponse>> {
     console.log('Not Implemented');
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { channelCount: 0, deviceName: "" } }
+  }
+
+  async validateFileUri(request: FileValidationRequest): Promise<BaseResponse<FileValidationResponse>> {
+    console.log("Not Implemented", request);
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: { isFileValid: false, filePath: "" } };
   }
 
 }

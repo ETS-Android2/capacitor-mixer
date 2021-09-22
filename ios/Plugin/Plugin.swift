@@ -510,6 +510,18 @@ public class Mixer: CAPPlugin {
         let deviceName = audioSession.preferredInput?.portName
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: [ResponseParameters.channelCount: channelCount, ResponseParameters.deviceName: deviceName ?? ""]))
     }
+
+    // TODO: write this into the plugin.
+    @objc func validateFileUri(_ call: CAPPluginCall) {
+        let filePath = call.getString(RequestParameters.filePath) ?? "";
+        if (!filePath.isEmpty) {
+            if let url = NSURL(string: filePath) {
+                let response = UIApplication.shared.canOpenURL(url as URL)
+                call.resolve(buildBaseResponse(wasSuccessful: true, message: "attempted to validate file path", data: [ResponseParameters.isFileValid: response, ResponseParameters.filePath: filePath]))
+            }
+        }
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "attempted to validate file path", data: [ResponseParameters.isFileValid: false, ResponseParameters.filePath: filePath]))
+    }
     
     /**
      * Utility method to get audioId from CAPPlugin object

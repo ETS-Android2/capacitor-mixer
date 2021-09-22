@@ -24,4 +24,5 @@ CAP_PLUGIN(Mixer, "Mixer",
            CAP_PLUGIN_METHOD(deinitAudioSession, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(resetPlugin, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(requestMixerPermissions, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(validateFileUri, CAPPluginReturnPromise);
 )

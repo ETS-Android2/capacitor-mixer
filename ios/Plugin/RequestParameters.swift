@@ -29,17 +29,17 @@ public class RequestParameters {
     static var channelListenerName: String = "channelListenerName";
 
     // AdjustVolumeRequest
-//    static var volume = "volume";
+    // static var volume = "volume";
     static var inputType: String = "inputType";
 
     // AdjustEqRequest
     static var eqType: String = "eqType";
     static var gain: String = "gain";
     static var frequency: String = "frequency";
-//    static var inputType = "inputType";
+    // static var inputType = "inputType";
 
     // ChannelPropertyRequest
-//    static var inputType = "inputType";
+    // static var inputType = "inputType";
 
     // SetEventRequest
     static var eventName: String = "eventName";
@@ -48,4 +48,7 @@ public class RequestParameters {
     static var inputPortType: String = "inputPortType";
     static var ioBufferDuration: String = "ioBufferDuration";
     static var audioSessionListenerName: String = "audioSessionListenerName";
+    
+    // FileValidationRequest
+    // static var filePath: String = "filePath";
 }

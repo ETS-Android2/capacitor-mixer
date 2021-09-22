@@ -184,6 +184,16 @@ export interface InitAudioSessionRequest {
    */
   audioSessionListenerName?: string
 }
+
+/**
+ * Request to validate a file path.
+ */
+export interface FileValidationRequest {
+  /**
+   * The file path that will be validated.
+   */
+  filePath: string
+}
 //#endregion
 
 //#region Response Objects
@@ -366,6 +376,20 @@ export interface InitAudioSessionResponse {
    * Preferred buffer duration when initializing audio session 
    */
   preferredIOBufferDuration: number
+}
+
+/**
+ * Response for validating file path
+ */
+export interface FileValidationResponse {
+  /**
+   * True if file path is found, False if file path is not found
+   */
+  isFileValid: boolean,
+  /**
+   * File path that was checked.
+   */
+  filePath: string
 }
 
 //#endregion
@@ -682,5 +706,11 @@ export interface MixerPlugin {
    * @param request audioId
    */
   destroyAudioFile(request: BaseMixerRequest): Promise<BaseResponse<DestroyResponse>>;
+
+  /**
+   * Validates file path and returns true if valid, false if invalid
+   * @param request 
+   */
+  validateFileUri(request: FileValidationRequest): Promise<BaseResponse<FileValidationResponse>>;
 }
 

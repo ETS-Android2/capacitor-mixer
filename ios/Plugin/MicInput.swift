@@ -155,7 +155,6 @@ public class MicInput {
             let response = avgPower < -80 ? -80 : avgPower
 
             self._parent.notifyListeners(self.listenerName, data: [ResponseParameters.meterLevel : response])
-            
         }
     }
 
@@ -177,8 +176,8 @@ public class MicInput {
             newBuffer?.frameLength = newBuffer!.frameCapacity
             let newChannels = UnsafeBufferPointer(start: newBuffer?.floatChannelData, count: Int((newBuffer?.format.channelCount)!))
             ch0Data.getBytes(UnsafeMutableRawPointer(newChannels[0]), length: ch0Data.length)
-
-            self.ioPlayer.scheduleBuffer(newBuffer!, completionHandler: nil)
+            
+            self.ioPlayer.scheduleBuffer(newBuffer!)
         }
     }
 
