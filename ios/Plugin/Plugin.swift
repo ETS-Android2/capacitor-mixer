@@ -511,7 +511,11 @@ public class Mixer: CAPPlugin {
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "got input channel count and device name", data: [ResponseParameters.channelCount: channelCount, ResponseParameters.deviceName: deviceName ?? ""]))
     }
 
-    // TODO: write this into the plugin.
+    /**
+     * Returns if the file path is readable by the application.
+     * @param call
+     */
+    // MARK: validateFileUri
     @objc func validateFileUri(_ call: CAPPluginCall) {
         let filePath = call.getString(RequestParameters.filePath) ?? "";
         if (!filePath.isEmpty) {

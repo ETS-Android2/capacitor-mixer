@@ -41,4 +41,7 @@ public class RequestParameters {
     public static String ioBufferDuration = "ioBufferDuration";
     public static String audioSessionListenerName = "audioSessionListenerName";
 
+    // FileValidationRequest
+    // static var filePath: String = "filePath";
+
 }

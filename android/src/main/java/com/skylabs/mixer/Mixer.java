@@ -22,6 +22,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import java.nio.file.InvalidPathException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -598,6 +600,35 @@ public class Mixer extends Plugin {
             requestPermissionForAlias("audio", call, "audioPermissionCallback");
         }
         call.resolve(buildBaseResponse(true, "All required permissions granted."));
+    }
+
+    /**
+     * Returns if the file path is readable by the application
+     * @param call
+     */
+    public void validateFileUri(PluginCall call) {
+        String filePath = call.getString(RequestParameters.filePath, "");
+        if(!filePath.isEmpty()) {
+            try {
+                Paths.get(filePath);
+            } catch (InvalidPathException | NullPointerException ex) {
+                JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
+                    put(ResponseParameters.isFileValid, false);
+                    put(ResponseParameters.filePath, filePath);
+                }});
+                call.resolve(buildBaseResponse(true, "attempted to validate file path", data));
+            }
+            JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
+                put(ResponseParameters.isFileValid, true);
+                put(ResponseParameters.filePath, filePath);
+            }});
+            call.resolve(buildBaseResponse(true, "attempted to validate file path", data));
+        }
+        JSObject data = Utils.buildResponseData(new HashMap<String, Object>() {{
+            put(ResponseParameters.isFileValid, false);
+            put(ResponseParameters.filePath, filePath);
+        }});
+        call.resolve(buildBaseResponse(true, "attempted to validate file path, file path is empty", data));
     }
 
     /**

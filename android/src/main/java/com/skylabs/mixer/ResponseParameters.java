@@ -50,4 +50,8 @@ public class ResponseParameters {
     public static String preferredInputPortType = "preferredInputPortType";
     public static String preferredInputPortName = "preferredInputPortName";
     public static String preferredIOBufferDuration = "preferredIOBufferDuration";
+
+    // FileValidationResponse
+    public static String isFileValid = "isFileValid";
+    public static String filePath = "filePath";
 }
