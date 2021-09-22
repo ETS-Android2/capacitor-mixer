@@ -135,6 +135,7 @@ public class Mixer: CAPPlugin {
         micInputList.forEach { (key: String, value: MicInput) in
             _ = value.destroy()
         }
+        engine.stop()
         do {
             try audioSession.setActive(false)
             isAudioSessionActive = false
