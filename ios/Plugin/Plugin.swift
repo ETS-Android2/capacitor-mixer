@@ -58,9 +58,9 @@ public class Mixer: CAPPlugin {
             return
         }
 
-        audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName) ?? ""
-        let inputPortType = call.getString(RequestParameters.inputPortType) ?? ""
-        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration) ?? 0.05
+        audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName, "")
+        let inputPortType = call.getString(RequestParameters.inputPortType, "")
+        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration, 0.05)
 
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
@@ -179,8 +179,8 @@ public class Mixer: CAPPlugin {
     // MARK: initMicInput
     @objc func initMicInput(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        let audioId = call.getString(RequestParameters.audioId) ?? ""
-        let channelNumber = call.getInt(RequestParameters.channelNumber) ?? -1
+        let audioId = call.getString(RequestParameters.audioId, "")
+        let channelNumber = call.getInt(RequestParameters.channelNumber, -1)
         if (channelNumber == -1) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "no channel number"))
             return
@@ -192,15 +192,15 @@ public class Mixer: CAPPlugin {
         let eqSettings: EqSettings = EqSettings()
         let channelSettings: ChannelSettings = ChannelSettings()
         
-        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain) ?? 0.0
-        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency) ?? 115.0
-        eqSettings.midGain = call.getFloat(RequestParameters.midGain) ?? 0.0
-        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency) ?? 500.0
-        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain) ?? 0.0
-        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency) ?? 1500.0
+        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain, 0.0)
+        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency, 115.0)
+        eqSettings.midGain = call.getFloat(RequestParameters.midGain, 0.0)
+        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency, 500.0)
+        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain, 0.0)
+        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency, 1500.0)
         
-        channelSettings.volume = call.getFloat(RequestParameters.volume) ?? 1.0
-        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName) ?? ""
+        channelSettings.volume = call.getFloat(RequestParameters.volume, 1.0)
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName, "")
         channelSettings.eqSettings = eqSettings
         channelSettings.channelNumber = channelNumber
         
@@ -243,22 +243,22 @@ public class Mixer: CAPPlugin {
     // MARK: initAudioFile
     @objc func initAudioFile(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
-        let filePath = call.getString(RequestParameters.filePath) ?? ""
-        let audioId = call.getString(RequestParameters.audioId) ?? ""
+        let filePath = call.getString(RequestParameters.filePath, "")
+        let audioId = call.getString(RequestParameters.audioId, "")
         let eqSettings: EqSettings = EqSettings()
         let channelSettings: ChannelSettings = ChannelSettings()
         
-        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain) ?? 0.0
-        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency) ?? 115.0
-        eqSettings.midGain = call.getFloat(RequestParameters.midGain) ?? 0.0
-        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency) ?? 500.0
-        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain) ?? 0.0
-        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency) ?? 1500.0
+        eqSettings.bassGain = call.getFloat(RequestParameters.bassGain, 0.0)
+        eqSettings.bassFrequency = call.getFloat(RequestParameters.bassFrequency, 115.0)
+        eqSettings.midGain = call.getFloat(RequestParameters.midGain, 0.0)
+        eqSettings.midFrequency = call.getFloat(RequestParameters.midFrequency, 500.0)
+        eqSettings.trebleGain = call.getFloat(RequestParameters.trebleGain, 0.0)
+        eqSettings.trebleFrequency = call.getFloat(RequestParameters.trebleFrequency, 1500.0)
         
-        channelSettings.volume = call.getFloat(RequestParameters.volume) ?? 1.0
-        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName) ?? ""
+        channelSettings.volume = call.getFloat(RequestParameters.volume, 1.0)
+        channelSettings.channelListenerName = call.getString(RequestParameters.channelListenerName, "")
         channelSettings.eqSettings = eqSettings
-        channelSettings.elapsedTimeEventName = call.getString(RequestParameters.elapsedTimeEventName) ?? ""
+        channelSettings.elapsedTimeEventName = call.getString(RequestParameters.elapsedTimeEventName, "")
         
         if (filePath.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "filePath not found"))
@@ -348,8 +348,8 @@ public class Mixer: CAPPlugin {
     @objc func adjustVolume(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "adjustVolume") else {return}
-        let volume = call.getFloat(RequestParameters.volume) ?? -1.0
-        let inputType = call.getString(RequestParameters.inputType) ?? ""
+        let volume = call.getFloat(RequestParameters.volume, -1.0)
+        let inputType = call.getString(RequestParameters.inputType, "")
         
         if (volume.isLess(than: 0)) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "in adjustVolume - volume cannot be less than zero percent"))
@@ -404,9 +404,9 @@ public class Mixer: CAPPlugin {
     @objc func adjustEq(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "adjustEq") else {return}
-        let filterType = call.getString(RequestParameters.eqType) ?? ""
-        let gain = call.getFloat(RequestParameters.gain) ?? -100.0
-        let freq = call.getFloat(RequestParameters.frequency) ?? -1.0
+        let filterType = call.getString(RequestParameters.eqType, "")
+        let gain = call.getFloat(RequestParameters.gain, -100.0)
+        let freq = call.getFloat(RequestParameters.frequency, -1.0)
         let inputType = call.getString(RequestParameters.inputType)
         
         if (filterType.isEmpty) {
@@ -466,7 +466,7 @@ public class Mixer: CAPPlugin {
     @objc func setElapsedTimeEvent(_ call: CAPPluginCall) {
         guard let _ = checkAudioSessionInit(call: call) else {return}
         guard let audioId = getAudioId(call: call, functionName: "setElapsedTimeEvent") else {return}
-        let eventName = call.getString(RequestParameters.eventName) ?? ""
+        let eventName = call.getString(RequestParameters.eventName, "")
         if (eventName.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from setElapsedTimeEvent - eventName not found"))
             return
@@ -517,7 +517,7 @@ public class Mixer: CAPPlugin {
      */
     // MARK: validateFileUri
     @objc func validateFileUri(_ call: CAPPluginCall) {
-        let filePath = call.getString(RequestParameters.filePath) ?? "";
+        let filePath = call.getString(RequestParameters.filePath, "")
         if (!filePath.isEmpty) {
             if let url = NSURL(string: filePath) {
                 let response = UIApplication.shared.canOpenURL(url as URL)
@@ -538,7 +538,7 @@ public class Mixer: CAPPlugin {
      */
     // MARK: getAudioId
     private func getAudioId(call: CAPPluginCall, functionName: String) -> String? {
-        let audioId = call.getString(RequestParameters.audioId) ?? ""
+        let audioId = call.getString(RequestParameters.audioId, "")
         if (audioId.isEmpty) {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "from \(functionName) - audioId not found"))
             return nil
