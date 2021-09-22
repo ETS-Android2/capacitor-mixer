@@ -522,6 +522,7 @@ public class Mixer: CAPPlugin {
             if let url = NSURL(string: filePath) {
                 let response = UIApplication.shared.canOpenURL(url as URL)
                 call.resolve(buildBaseResponse(wasSuccessful: true, message: "attempted to validate file path", data: [ResponseParameters.isFileValid: response, ResponseParameters.filePath: filePath]))
+                return
             }
         }
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "attempted to validate file path", data: [ResponseParameters.isFileValid: false, ResponseParameters.filePath: filePath]))
