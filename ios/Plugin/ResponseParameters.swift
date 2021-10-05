@@ -62,4 +62,7 @@ public class ResponseParameters {
     // FileValidationResponse
     static var isFileValid: String = "isFileValid";
     static var filePath: String = "filePath";
+
+    // StateResponse
+    // static var state: String = "state";
 }

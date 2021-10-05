@@ -194,6 +194,13 @@ export interface FileValidationRequest {
    */
   filePath: string
 }
+
+/**
+ * Request to stream audio to provided url
+ */
+export interface StreamRequest {
+  streamUrl: string
+}
 //#endregion
 
 //#region Response Objects
@@ -252,6 +259,16 @@ export interface PlaybackStateResponse {
    * Represents the state of the player
    */
   state: PlayerState
+}
+
+/**
+ * Response that returns PlayerState
+ */
+ export interface SessionStateResponse {
+  /**
+   * Represents the state of the player
+   */
+  state: boolean
 }
 
 /**
@@ -680,6 +697,11 @@ export interface MixerPlugin {
   deinitAudioSession(): Promise<BaseResponse<null>>;
 
   /**
+   * Checks the current state of the AudioSession.
+   */
+  checkAudioSessionState(): Promise<BaseResponse<SessionStateResponse>>
+
+  /**
    * Resets plugin state back to its initial state
    * 
    * <span style="color: 'red'">CAUTION: This will completely wipe everything you have initialized from the plugin!</span>
@@ -712,5 +734,16 @@ export interface MixerPlugin {
    * @param request 
    */
   validateFileUri(request: FileValidationRequest): Promise<BaseResponse<FileValidationResponse>>;
+
+  /**
+   * Starts a stream to a provided URL
+   * @param request 
+   */
+  startStream(request: StreamRequest): Promise<BaseResponse<null>>
+
+  /**
+   * Stops a stream if one is currently active.
+   */
+  stopStream(): Promise<BaseResponse<null>>
 }
 

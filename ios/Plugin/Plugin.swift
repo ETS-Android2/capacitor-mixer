@@ -18,11 +18,12 @@ public class Mixer: CAPPlugin {
     public var audioFileInterruptionList: [String] = []
     public var audioSessionListenerName: String = ""
     public let nc: NotificationCenter = NotificationCenter.default
+    public var outputStream: OutputStream = OutputStream()
+    public var routeChangeObserver: Any = {}
+    public var isStreaming: Bool = false
     
     public override func load() {
         super.load()
-        registerForSessionInterrupts()
-        registerForSessionRouteChange()
         // registerForMediaServicesWereReset()
         // registerForMediaServicesWereLost()
         do {
@@ -30,6 +31,8 @@ public class Mixer: CAPPlugin {
             try audioSession.setPreferredIOBufferDuration(0.05)
             try audioSession.setActive(true)
             try audioSession.setActive(false)
+            registerForSessionInterrupts()
+            registerForSessionRouteChange()
         } catch {
             // print("Problem initializing audio session")
         }
@@ -60,7 +63,7 @@ public class Mixer: CAPPlugin {
 
         audioSessionListenerName = call.getString(RequestParameters.audioSessionListenerName, "")
         let inputPortType = call.getString(RequestParameters.inputPortType, "")
-        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration, 0.05)
+        let ioBufferDuration = call.getDouble(RequestParameters.ioBufferDuration, 0.002)
 
         do {
             try audioSession.setCategory(.multiRoute , mode: .default, options: [.defaultToSpeaker])
@@ -119,6 +122,15 @@ public class Mixer: CAPPlugin {
             call.resolve(buildBaseResponse(wasSuccessful: false, message: "ERROR deinitializing audio session with exception: \(error)"))
             return
         }
+    }
+
+    /** 
+     * Returns the current state of the audioSession 
+     * @param call
+     */
+    // MARK: checkAudioSessionState
+    @objc func checkAudioSessionState(_ call: CAPPluginCall) {
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "Successfully got audio session state", data: [ResponseParameters.state: isAudioSessionActive]))
     }
     
     /**
@@ -528,6 +540,50 @@ public class Mixer: CAPPlugin {
         }
         call.resolve(buildBaseResponse(wasSuccessful: true, message: "attempted to validate file path", data: [ResponseParameters.isFileValid: false, ResponseParameters.filePath: filePath]))
     }
+
+    /**
+     * Starts a stream from the output of the engine.mainMixerNode
+     * @param call
+     */
+    // MARK: startStream
+    @objc func startStream(_ call: CAPPluginCall) {
+        guard let _ = checkAudioSessionInit(call: call) else {return}
+        let streamUrl = call.getString(RequestParameters.streamUrl, "")
+        if(streamUrl.isEmpty) {
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "unable to start stream because url is empty"))
+            return
+        }
+        let urlString = NSURL(string: streamUrl)
+        outputStream = OutputStream(url: urlString! as URL, append: false) ?? OutputStream()
+        isStreaming = true       
+
+        engine.mainMixerNode.installTap(onBus: 0, bufferSize: 1024, format: nil) { buffer, currentTime in
+            // TODO: convert AVAudioPCMBuffer to UnsafePointer<UInt8>
+            let int16Buffer = buffer.int16ChannelData?.pointee;
+            
+            int16Buffer?.withMemoryRebound(to: UInt8.self, capacity: 1024) {
+                self.outputStream.write($0, maxLength: 1024)
+            }
+        }
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "streaming has started on \(streamUrl)"))
+    }
+
+    /**
+     * Stops a stream from the output of engine.mainMixerNode
+     */
+    // MARK: stopStream
+    @objc func stopStream(_ call: CAPPluginCall){
+        guard let _ = checkAudioSessionInit(call: call) else {return}
+        if(!isStreaming) {
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "unable to stop streaming because the stream is not currently active."))
+        }
+        if(!engine.isRunning){
+            call.resolve(buildBaseResponse(wasSuccessful: false, message: "unable to stop streaming because the engine is not running."))
+        }
+        engine.mainMixerNode.removeTap(onBus: 0)
+        isStreaming = false
+        call.resolve(buildBaseResponse(wasSuccessful: true, message: "stopped streaming"))
+    }
     
     /**
      * Utility method to get audioId from CAPPlugin object
@@ -675,7 +731,18 @@ public class Mixer: CAPPlugin {
     // MARK: registerForSessionRouteChange
     private func registerForSessionRouteChange() {
         DispatchQueue.main.async {
-            self.nc.addObserver(self, selector: #selector(self.handleRouteChange), name: AVAudioSession.routeChangeNotification, object: self.audioSession)
+                    self.routeChangeObserver = self.nc.addObserver(self, selector: #selector(self.handleRouteChange), name: AVAudioSession.routeChangeNotification, object: nil)
+        }
+    }
+    
+    /**
+     * Removes the nofitication center listener for session route changes
+     */
+    // TODO: remove if not used
+    // MARK:unRegisterForSessionRouteChange
+    private func unRegisterForSessionRouteChange() {
+        DispatchQueue.main.async {
+            self.nc.removeObserver(self.routeChangeObserver)
         }
     }
     
@@ -710,6 +777,7 @@ public class Mixer: CAPPlugin {
     @objc func handleRouteChange(notification: Notification) {
         DispatchQueue.main.async {
         // print("handleRouteChange occurred with notification: \(notification)")
+        if(!self.isAudioSessionActive) { return }
         guard let userInfo = notification.userInfo,
               let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
               let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue)
@@ -793,11 +861,7 @@ public class Mixer: CAPPlugin {
      */
     // MARK: handleServiceReset
 //    @objc func handleServiceReset(notification: Notification) {
-////        guard let userInfo = notification.userInfo,
-////              let typeValue = userInfo[AVAudioSession] as? UInt,
-////              let type = AVAudioSession.InterruptionType(rawValue: typeValue)
-////        else {return}
-//        // print("From handleServiceReset - Notification is: \(notification)")
+//         print("From handleServiceReset - Notification is: \(notification)")
 //    }
     
     /**

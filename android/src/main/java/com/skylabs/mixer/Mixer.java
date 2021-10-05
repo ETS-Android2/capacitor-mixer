@@ -140,6 +140,18 @@ public class Mixer extends Plugin {
         call.resolve(buildBaseResponse(true, "Successfully deinitialized audio session"));
     }
 
+    /** 
+     * Returns the current state of the audioSession 
+     * @param call
+     */
+    @PluginMethod
+    public void checkAudioSessionState(PluginCall call) {
+        JSObject response = new JSObject();
+        response.put(ResponseParameters.state, isAudioSessionActive);
+
+        call.resolve(buildBaseResponse(true, "successfully got audio session state", response));
+    }
+
     /**
      * Resets plugin state back to its initial state
      *
@@ -600,6 +612,30 @@ public class Mixer extends Plugin {
             requestPermissionForAlias("audio", call, "audioPermissionCallback");
         }
         call.resolve(buildBaseResponse(true, "All required permissions granted."));
+    }
+
+    /**
+     * Starts a stream from the output of the engine.mainMixerNode
+     * @param call
+     */
+    @PluginMethod
+    public void startStream(PluginCall call) {
+        // TODO: implement this, it looks done but isn't
+        if(!checkAudioSessionInit(call)) { return; }
+        String streamUrl = call.getString(RequestParameters.streamUrl, "");
+        if(streamUrl.isEmpty) {
+            call.resolve(buildBaseResponse(false, "unable to start stream because url is empty"));
+        }
+        call.resolve(buildBaseResponse(true, "Streaming has started on "));
+    }
+
+    /**
+     * Starts a stream from the output of the engine.mainMixerNode
+     * @param call
+     */
+    @PluginMethod
+    public void stopStream(PluginCall call) {
+        // TODO: implement this
     }
 
     /**

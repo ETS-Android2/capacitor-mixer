@@ -3,7 +3,7 @@
 //  Plugin
 //
 //  Created by Skylabs Technology on 6/11/21.
-//  Copyright © 2021 Max Lynch. All rights reserved.
+//  Copyright © 2021 Skylabs Technology. All rights reserved.
 //
 
 
@@ -177,7 +177,29 @@ public class MicInput {
             let newChannels = UnsafeBufferPointer(start: newBuffer?.floatChannelData, count: Int((newBuffer?.format.channelCount)!))
             ch0Data.getBytes(UnsafeMutableRawPointer(newChannels[0]), length: ch0Data.length)
             
-            self.ioPlayer.scheduleBuffer(newBuffer!)
+            // ---------
+            guard let channelData = buffer.floatChannelData else { return }
+          
+            let channelDataValue = channelData.pointee
+
+            let channelDataValueArray = stride(
+              from: 0,
+              to: Int(buffer.frameLength),
+              by: buffer.stride)
+              .map { channelDataValue[$0] }
+          
+            let rms = sqrt(channelDataValueArray.map {
+              return $0 * $0
+            }
+            .reduce(0, +) / Float(buffer.frameLength))
+          
+            let avgPower = 20 * log10(rms)
+            let response = avgPower < -80 ? -80 : avgPower
+            // ---------
+            
+            if(response >= -65){
+                self.ioPlayer.scheduleBuffer(newBuffer!)
+            }
         }
     }
 
@@ -329,7 +351,6 @@ public class MicInput {
         if (listenerName != "") {
             micMixer.installTap(onBus: 0, bufferSize: 1024, format: micMixer.outputFormat(forBus: 0), block: handleMetering)
         }
-        ioPlayer.play()
         do {
             try engine.start()
             micInput!.installTap(onBus: 0, bufferSize: 512, format: micInput!.outputFormat(forBus: 0), block: handleInputBuffer)

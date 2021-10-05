@@ -20,7 +20,9 @@ import type {
   InitAudioSessionResponse,
   InitAudioSessionRequest,
   FileValidationRequest,
-  FileValidationResponse
+  FileValidationResponse,
+  SessionStateResponse,
+  StreamRequest
 } from './definitions';
 import {
   AudioSessionPortType,
@@ -79,6 +81,10 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
   async deinitAudioSession(): Promise<BaseResponse<null>> {
     console.log('not implemented')
     return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+  }
+
+  async checkAudioSessionState(): Promise<BaseResponse<SessionStateResponse>> {
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: {state: false} };
   }
 
   async resetPlugin(): Promise<BaseResponse<null>> {
@@ -144,6 +150,16 @@ export class MixerWeb extends WebPlugin implements MixerPlugin {
   async validateFileUri(request: FileValidationRequest): Promise<BaseResponse<FileValidationResponse>> {
     console.log("Not Implemented", request);
     return { status: ResponseStatus.ERROR, message: "not implemented", data: { isFileValid: false, filePath: "" } };
+  }
+
+  async startStream(request: StreamRequest): Promise<BaseResponse<null>> {
+    console.log('Not Implemented', request);
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
+  }
+
+  async stopStream(): Promise<BaseResponse<null>> {
+    console.log('Not Implemented');
+    return { status: ResponseStatus.ERROR, message: "not implemented", data: null };
   }
 
 }

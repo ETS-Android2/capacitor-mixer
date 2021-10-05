@@ -18,6 +18,7 @@ CAP_PLUGIN(Mixer, "Mixer",
            CAP_PLUGIN_METHOD(initMicInput, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getInputChannelCount, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(initAudioSession, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(checkAudioSessionState, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(getAudioSessionPreferredInputPortType, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(destroyMicInput, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(destroyAudioFile, CAPPluginReturnPromise);
@@ -25,4 +26,6 @@ CAP_PLUGIN(Mixer, "Mixer",
            CAP_PLUGIN_METHOD(resetPlugin, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(requestMixerPermissions, CAPPluginReturnPromise);
            CAP_PLUGIN_METHOD(validateFileUri, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(startStream, CAPPluginReturnPromise);
+           CAP_PLUGIN_METHOD(stopStream, CAPPluginReturnPromise);
 )

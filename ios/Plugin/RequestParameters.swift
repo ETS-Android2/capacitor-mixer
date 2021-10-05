@@ -51,4 +51,7 @@ public class RequestParameters {
     
     // FileValidationRequest
     // static var filePath: String = "filePath";
+
+    // StreamRequest
+    static var streamUrl: String = "streamUrl";
 }

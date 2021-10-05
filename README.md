@@ -54,10 +54,14 @@ ext {
 * [`getInputChannelCount()`](#getinputchannelcount)
 * [`initAudioSession(...)`](#initaudiosession)
 * [`deinitAudioSession()`](#deinitaudiosession)
+* [`checkAudioSessionState()`](#checkaudiosessionstate)
 * [`resetPlugin()`](#resetplugin)
 * [`getAudioSessionPreferredInputPortType()`](#getaudiosessionpreferredinputporttype)
 * [`destroyMicInput(...)`](#destroymicinput)
 * [`destroyAudioFile(...)`](#destroyaudiofile)
+* [`validateFileUri(...)`](#validatefileuri)
+* [`startStream(...)`](#startstream)
+* [`stopStream()`](#stopstream)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -427,6 +431,19 @@ Cancels audio session and resets selected port. Use prior to changing port type
 --------------------
 
 
+### checkAudioSessionState()
+
+```typescript
+checkAudioSessionState() => Promise<BaseResponse<SessionStateResponse>>
+```
+
+Checks the current state of the AudioSession.
+
+**Returns:** <code>Promise&lt;<a href="#baseresponse">BaseResponse</a>&lt;<a href="#sessionstateresponse">SessionStateResponse</a>&gt;&gt;</code>
+
+--------------------
+
+
 ### resetPlugin()
 
 ```typescript
@@ -489,6 +506,53 @@ Note: Once destroyed, the channel cannot be recovered
 | **`request`** | <code><a href="#basemixerrequest">BaseMixerRequest</a></code> | audioId     |
 
 **Returns:** <code>Promise&lt;<a href="#baseresponse">BaseResponse</a>&lt;<a href="#destroyresponse">DestroyResponse</a>&gt;&gt;</code>
+
+--------------------
+
+
+### validateFileUri(...)
+
+```typescript
+validateFileUri(request: FileValidationRequest) => Promise<BaseResponse<FileValidationResponse>>
+```
+
+Validates file path and returns true if valid, false if invalid
+
+| Param         | Type                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| **`request`** | <code><a href="#filevalidationrequest">FileValidationRequest</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#baseresponse">BaseResponse</a>&lt;<a href="#filevalidationresponse">FileValidationResponse</a>&gt;&gt;</code>
+
+--------------------
+
+
+### startStream(...)
+
+```typescript
+startStream(request: StreamRequest) => Promise<BaseResponse<null>>
+```
+
+Starts a stream to a provided URL
+
+| Param         | Type                                                    |
+| ------------- | ------------------------------------------------------- |
+| **`request`** | <code><a href="#streamrequest">StreamRequest</a></code> |
+
+**Returns:** <code>Promise&lt;<a href="#baseresponse">BaseResponse</a>&lt;null&gt;&gt;</code>
+
+--------------------
+
+
+### stopStream()
+
+```typescript
+stopStream() => Promise<BaseResponse<null>>
+```
+
+Stops a stream if one is currently active.
+
+**Returns:** <code>Promise&lt;<a href="#baseresponse">BaseResponse</a>&lt;null&gt;&gt;</code>
 
 --------------------
 
@@ -694,6 +758,15 @@ Request to initialize an audio session
 | **`audioSessionListenerName`** | <code>string</code>                                                   | The name of the audio session event that will be subscribed to. Subscribed event returns <a href="#audiosessionevent">AudioSessionEvent</a> |
 
 
+#### SessionStateResponse
+
+Response that returns <a href="#playerstate">PlayerState</a>
+
+| Prop        | Type                 | Description                        |
+| ----------- | -------------------- | ---------------------------------- |
+| **`state`** | <code>boolean</code> | Represents the state of the player |
+
+
 #### DestroyResponse
 
 Response for destroying a channel
@@ -702,6 +775,34 @@ Response for destroying a channel
 | -------------------------- | ------------------- | ------------------------------------------------------------------------------------------ |
 | **`listenerName`**         | <code>string</code> | The name of the volume metering event Note: If no event is found, empty string is returned |
 | **`elapsedTimeEventName`** | <code>string</code> | The name of the elapsed time event Note: If no event is found, empty string is returned    |
+
+
+#### FileValidationResponse
+
+Response for validating file path
+
+| Prop              | Type                 | Description                                                 |
+| ----------------- | -------------------- | ----------------------------------------------------------- |
+| **`isFileValid`** | <code>boolean</code> | True if file path is found, False if file path is not found |
+| **`filePath`**    | <code>string</code>  | File path that was checked.                                 |
+
+
+#### FileValidationRequest
+
+Request to validate a file path.
+
+| Prop           | Type                | Description                           |
+| -------------- | ------------------- | ------------------------------------- |
+| **`filePath`** | <code>string</code> | The file path that will be validated. |
+
+
+#### StreamRequest
+
+Request to stream audio to provided url
+
+| Prop            | Type                |
+| --------------- | ------------------- |
+| **`streamUrl`** | <code>string</code> |
 
 
 ### Type Aliases
